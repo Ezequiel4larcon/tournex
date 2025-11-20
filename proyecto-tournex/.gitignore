@@ -1,0 +1,27 @@
+# Backend
+node_modules/
+uploads/
+.env
+*.log
+dist/
+
+# Frontend
+node_modules/
+dist/
+dist-ssr/
+.env
+.env.local
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
