@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { validateEmail, validatePassword } from '../utils/validators';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { Input } from '../components/ui/Input';
+import { Gamepad2, ArrowLeft } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
-    identifier: '', // email o username
+    email: '',
     password: ''
   });
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,7 +22,6 @@ const Login = () => {
       ...prev,
       [name]: value
     }));
-    // Limpiar error del campo
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -31,14 +33,14 @@ const Login = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.identifier.trim()) {
-      newErrors.identifier = 'Email o nombre de usuario es requerido';
+    if (!formData.email) {
+      newErrors.email = 'El email es requerido';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Email inválido';
     }
 
     if (!formData.password) {
       newErrors.password = 'La contraseña es requerida';
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
     }
 
     setErrors(newErrors);
@@ -50,100 +52,119 @@ const Login = () => {
 
     if (!validateForm()) return;
 
-    setLoading(true);
+    setIsLoading(true);
 
-    const result = await login({
-      identifier: formData.identifier,
-      password: formData.password
-    });
-
-    setLoading(false);
-
-    if (result.success) {
-      navigate('/');
-    } else {
-      setErrors({
-        submit: result.error?.message || 'Error al iniciar sesión'
+    try {
+      await login({
+        identifier: formData.email,
+        password: formData.password
       });
+      navigate('/tournaments');
+    } catch (error) {
+      setErrors({
+        submit: error.response?.data?.message || 'Error al iniciar sesión'
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Iniciar Sesión
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            ¿No tienes cuenta?{' '}
-            <Link to="/register" className="font-medium text-primary-600 hover:text-primary-500">
-              Regístrate aquí
-            </Link>
-          </p>
+    <main className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-center gap-2 mb-8">
+          <Gamepad2 className="w-6 h-6 text-primary" />
+          <h1 className="text-xl font-bold text-foreground">TourneX</h1>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {errors.submit && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {errors.submit}
-            </div>
-          )}
-
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-1">
-                Email o nombre de usuario
-              </label>
-              <input
-                id="identifier"
-                name="identifier"
-                type="text"
-                value={formData.identifier}
-                onChange={handleChange}
-                className={`appearance-none relative block w-full px-3 py-2 border ${
-                  errors.identifier ? 'border-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm`}
-                placeholder="usuario@ejemplo.com"
-              />
-              {errors.identifier && (
-                <p className="mt-1 text-sm text-red-600">{errors.identifier}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                className={`appearance-none relative block w-full px-3 py-2 border ${
-                  errors.password ? 'border-red-500' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm`}
-                placeholder="••••••••"
-              />
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
-            </div>
+        {/* Card */}
+        <Card className="bg-card border-border">
+          <div className="p-6 space-y-1">
+            <h2 className="text-2xl font-bold text-foreground">Iniciar Sesión</h2>
+            <p className="text-sm text-muted-foreground">Accede a tu cuenta de TourneX</p>
           </div>
+          <div className="p-6 pt-0">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Error general */}
+              {errors.submit && (
+                <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded">
+                  {errors.submit}
+                </div>
+              )}
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-            </button>
+              {/* Email */}
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-foreground">
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className={errors.email ? "border-destructive" : ""}
+                />
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+              </div>
+
+              {/* Password */}
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium text-foreground">
+                  Contraseña
+                </label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  className={errors.password ? "border-destructive" : ""}
+                />
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+              </div>
+
+              {/* Remember Me / Forgot Password */}
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
+                  <input type="checkbox" className="rounded border-border" />
+                  Recuérdame
+                </label>
+                <Link to="#" className="text-primary hover:underline">
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+
+              {/* Submit Button */}
+              <Button 
+                type="submit" 
+                className="w-full bg-primary hover:bg-primary/90 mt-6" 
+                disabled={isLoading}
+              >
+                {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              </Button>
+
+              {/* Register Link */}
+              <p className="text-center text-sm text-muted-foreground mt-4">
+                ¿No tienes cuenta?{' '}
+                <Link to="/register" className="text-primary hover:underline font-medium">
+                  Crea una aquí
+                </Link>
+              </p>
+            </form>
           </div>
-        </form>
+        </Card>
+
+        {/* Back Link */}
+        <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground mt-6 justify-center">
+          <ArrowLeft className="w-4 h-4" />
+          Volver al inicio
+        </Link>
       </div>
-    </div>
+    </main>
   );
 };
 
