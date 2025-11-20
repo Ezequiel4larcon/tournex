@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import { authAPI } from '../api/forumApi';
+import { initSocket, disconnectSocket } from '../utils/socket';
 
 export const AuthContext = createContext();
 
@@ -61,6 +62,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(loggedUser));
       setUser(loggedUser);
       
+      // Inicializar Socket.IO
+      initSocket(token);
+      
       return { success: true };
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión');
@@ -75,6 +79,9 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('Error al cerrar sesión:', err);
     } finally {
+      // Desconectar Socket.IO
+      disconnectSocket();
+      
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       setUser(null);
@@ -120,8 +127,13 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     changePassword,
     isAuthenticated: !!user,
+    // Roles del sistema de foros (legacy)
     isModerator: user?.role === 'moderator' || user?.role === 'admin',
     isAdmin: user?.role === 'admin',
+    // Roles del sistema de torneos
+    isPlayer: user?.role === 'player',
+    isReferee: user?.role === 'referee',
+    isTournamentAdmin: user?.role === 'admin',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

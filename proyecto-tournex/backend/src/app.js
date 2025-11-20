@@ -7,6 +7,11 @@ import { errorHandler, notFound } from './utils/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
 import commentRoutes from './routes/comment.routes.js';
 import fileRoutes from './routes/file.routes.js';
+import tournamentRoutes from './routes/tournament.routes.js';
+import teamRoutes from './routes/team.routes.js';
+import matchRoutes from './routes/match.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
+import messageRoutes from './routes/message.routes.js';
 
 const app = express();
 
@@ -35,6 +40,11 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/tournaments', tournamentRoutes);
+app.use('/api/teams', teamRoutes);
+app.use('/api/matches', matchRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/messages', messageRoutes);
 
 // Manejadores de errores
 app.use(notFound);

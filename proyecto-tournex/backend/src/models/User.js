@@ -29,8 +29,13 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'moderator', 'admin'],
-    default: 'user'
+    enum: ['player', 'referee', 'admin'],
+    default: 'player'
+  },
+  currentTeam: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Team',
+    default: null
   },
   isActive: {
     type: Boolean,

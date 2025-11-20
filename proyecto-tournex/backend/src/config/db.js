@@ -3,25 +3,18 @@ import { config } from './env.js';
 
 export const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(config.mongodbUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-    
-    // Event listeners para monitorear la conexión
-    mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err);
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️  MongoDB disconnected');
-    });
-
-    return conn;
+    await mongoose.connect(config.mongodbUri);
+    console.log('✅ MongoDB connected successfully');
   } catch (error) {
-    console.error(`❌ Error connecting to MongoDB: ${error.message}`);
+    console.error('❌ Error connecting to MongoDB:', error.message);
     process.exit(1);
   }
 };
+
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️  MongoDB disconnected');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB error:', err);
+});

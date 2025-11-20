@@ -83,3 +83,25 @@ export const optionalAuth = async (req, res, next) => {
     next();
   }
 };
+
+/**
+ * Middleware para verificar si es capitán del equipo
+ */
+export const isCaptain = async (req, res, next) => {
+  try {
+    const Team = (await import('../models/Team.js')).default;
+    const team = await Team.findById(req.params.id || req.params.teamId);
+    
+    if (!team) {
+      throw new ApiError(404, 'Team not found');
+    }
+
+    if (team.captain.toString() !== req.user._id.toString()) {
+      throw new ApiError(403, 'Only team captain can perform this action');
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
