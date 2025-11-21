@@ -42,13 +42,3 @@ tournamentParticipantSchema.index({ tournament: 1, player: 1 }, { unique: true }
 tournamentParticipantSchema.index({ tournament: 1, status: 1 });
 
 export default mongoose.model('TournamentParticipant', tournamentParticipantSchema);
-  if (this.participantType === 'team' && !this.team) {
-    this.invalidate('team', 'Team is required for team-type participant');
-  }
-  if (this.player && this.team) {
-    this.invalidate('player', 'Cannot have both player and team');
-  }
-  next();
-});
-
-export default mongoose.model('TournamentParticipant', tournamentParticipantSchema);

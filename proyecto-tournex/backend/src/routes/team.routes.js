@@ -2,7 +2,7 @@ import express from 'express';
 import { body } from 'express-validator';
 import * as teamController from '../controllers/team.controller.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import { isSuperAdmin, isAdmin } from '../middlewares/roleMiddleware.js';
+import { isSuperAdmin } from '../middlewares/roleMiddleware.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 
 const router = express.Router();

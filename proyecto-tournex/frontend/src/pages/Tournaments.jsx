@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
+import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Gamepad2, Plus, Search, Users } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 import { getSocket } from '../utils/socket';
 
 export default function Tournaments() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,13 +59,33 @@ export default function Tournaments() {
       t.game.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusBadge = (status) => {
+  const getStatusLabel = (status) => {
     const statusMap = {
-      active: { class: 'bg-accent/20 text-accent', text: 'En Progreso' },
-      upcoming: { class: 'bg-secondary/20 text-secondary', text: 'Próximamente' },
-      completed: { class: 'bg-muted text-muted-foreground', text: 'Finalizado' },
+      pending: 'Próximamente',
+      registration_open: 'Inscripciones Abiertas',
+      registration_closed: 'Inscripciones Cerradas',
+      in_progress: 'En Progreso',
+      completed: 'Finalizado',
+      cancelled: 'Cancelado'
     };
-    return statusMap[status] || statusMap.upcoming;
+    return statusMap[status] || status;
+  };
+
+  const getStatusClass = (status) => {
+    const classMap = {
+      pending: 'bg-secondary/20 text-secondary',
+      registration_open: 'bg-accent/20 text-accent',
+      registration_closed: 'bg-yellow-500/20 text-yellow-500',
+      in_progress: 'bg-accent/20 text-accent',
+      completed: 'bg-muted text-muted-foreground',
+      cancelled: 'bg-destructive/20 text-destructive'
+    };
+    return classMap[status] || 'bg-muted text-muted-foreground';
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   if (loading) {
@@ -82,11 +105,16 @@ export default function Tournaments() {
             <Gamepad2 className="w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold text-foreground">TourneX</h1>
           </Link>
-          <div className="flex gap-4">
+          <div className="flex items-center gap-4">
+            {user && (
+              <span className="text-sm text-muted-foreground">
+                Bienvenido, {user.username}
+              </span>
+            )}
             <Link to="/dashboard">
               <Button variant="ghost">Dashboard</Button>
             </Link>
-            <Button variant="outline">Cerrar Sesión</Button>
+            <Button variant="outline" onClick={handleLogout}>Cerrar Sesión</Button>
           </div>
         </div>
       </nav>
