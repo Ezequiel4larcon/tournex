@@ -44,10 +44,12 @@ export default function Tournaments() {
   const loadTournaments = async () => {
     try {
       setLoading(true);
-      const data = await tournamentsAPI.getAll();
-      setTournaments(data);
+      const response = await tournamentsAPI.getAll();
+      const data = response.data.data || response.data;
+      setTournaments(data.tournaments || data || []);
     } catch (err) {
-      setError(err.message);
+      console.error('Error loading tournaments:', err);
+      setError(err.response?.data?.message || err.message || 'Error al cargar torneos');
     } finally {
       setLoading(false);
     }
@@ -150,47 +152,42 @@ export default function Tournaments() {
 
         {/* Error */}
         {error && (
-          <Card className="bg-destructive/10 border-destructive/30 mb-8">
-            <CardContent className="pt-6">
-              <p className="text-destructive">{error}</p>
-            </CardContent>
+          <Card className="bg-destructive/10 border-destructive/30 mb-8 p-6">
+            <p className="text-destructive">{error}</p>
           </Card>
         )}
 
         {/* Tournaments Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-1 gap-4">
           {filteredTournaments.map((tournament) => {
-            const statusBadge = getStatusBadge(tournament.status);
-            const currentPlayers = tournament.participants?.length || 0;
-            const isFull = currentPlayers >= tournament.maxPlayers;
+            const currentPlayers = tournament.currentParticipants || 0;
+            const isFull = currentPlayers >= tournament.maxParticipants;
 
             return (
               <Card
                 key={tournament._id}
                 className="bg-card border-border hover:border-primary/30 transition-colors"
               >
-                <CardHeader>
-                  <div className="flex justify-between items-start">
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                      <CardTitle className="text-xl">{tournament.name}</CardTitle>
-                      <CardDescription>
-                        {tournament.createdBy?.username || 'Organizador'}
-                      </CardDescription>
+                      <h3 className="text-xl font-bold text-foreground">{tournament.name}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {tournament.owner?.username || tournament.createdBy?.username || 'Organizador'}
+                      </p>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-4 ${statusBadge.class}`}
+                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-4 ${getStatusClass(tournament.status)}`}
                     >
-                      {statusBadge.text}
+                      {getStatusLabel(tournament.status)}
                     </span>
                   </div>
-                </CardHeader>
-                <CardContent>
                   <div className="flex justify-between items-center">
                     <div className="space-y-2">
                       <p className="text-sm text-foreground font-medium">{tournament.game}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Users className="w-4 h-4" />
-                        {currentPlayers} / {tournament.maxPlayers} jugadores
+                        {currentPlayers} / {tournament.maxParticipants} jugadores
                       </div>
                     </div>
                     <Link to={`/tournaments/${tournament._id}`}>
@@ -199,7 +196,7 @@ export default function Tournaments() {
                       </Button>
                     </Link>
                   </div>
-                </CardContent>
+                </div>
               </Card>
             );
           })}

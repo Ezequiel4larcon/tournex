@@ -69,15 +69,30 @@ const Register = () => {
     setIsLoading(true);
 
     try {
-      await register({
+      const result = await register({
         username: formData.username,
         email: formData.email,
         password: formData.password
       });
-      navigate('/tournaments');
+
+      if (result.success) {
+        navigate('/tournaments');
+      } else {
+        // Manejar errores de validación del backend
+        const backendErrors = {};
+        if (result.error?.errors) {
+          result.error.errors.forEach(err => {
+            backendErrors[err.field] = err.message;
+          });
+        }
+        setErrors({
+          ...backendErrors,
+          submit: result.error?.message || 'Error al registrar usuario'
+        });
+      }
     } catch (error) {
       setErrors({
-        submit: error.response?.data?.message || 'Error al registrar usuario'
+        submit: error.message || 'Error al registrar usuario'
       });
     } finally {
       setIsLoading(false);

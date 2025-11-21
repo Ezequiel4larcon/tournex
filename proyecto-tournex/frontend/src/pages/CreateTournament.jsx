@@ -14,8 +14,10 @@ export default function CreateTournament() {
     name: '',
     game: '',
     description: '',
-    maxPlayers: '32',
-    format: 'elimination',
+    maxParticipants: '32',
+    format: 'single_elimination',
+    registrationStartDate: '',
+    registrationEndDate: '',
     startDate: '',
     endDate: '',
   });
@@ -24,9 +26,10 @@ export default function CreateTournament() {
 
   const games = ['Valorant', 'CS2', 'League of Legends', 'Dota 2', 'Overwatch 2', 'Street Fighter 6'];
   const formats = [
-    { value: 'elimination', label: 'Eliminación Simple' },
+    { value: 'single_elimination', label: 'Eliminación Simple' },
     { value: 'double_elimination', label: 'Doble Eliminación' },
     { value: 'round_robin', label: 'Round Robin' },
+    { value: 'swiss', label: 'Sistema Suizo' },
   ];
 
   const handleChange = (e) => {
@@ -44,9 +47,11 @@ export default function CreateTournament() {
     if (formData.name.length < 3) newErrors.name = 'Mínimo 3 caracteres';
 
     if (!formData.game) newErrors.game = 'Selecciona un juego';
-    if (!formData.maxPlayers) newErrors.maxPlayers = 'La capacidad es requerida';
-    if (parseInt(formData.maxPlayers) < 2) newErrors.maxPlayers = 'Mínimo 2 jugadores';
+    if (!formData.maxParticipants) newErrors.maxParticipants = 'La capacidad es requerida';
+    if (parseInt(formData.maxParticipants) < 2) newErrors.maxParticipants = 'Mínimo 2 jugadores';
 
+    if (!formData.registrationStartDate) newErrors.registrationStartDate = 'Fecha de inicio de inscripciones requerida';
+    if (!formData.registrationEndDate) newErrors.registrationEndDate = 'Fecha de fin de inscripciones requerida';
     if (!formData.startDate) newErrors.startDate = 'Fecha de inicio requerida';
     if (!formData.endDate) newErrors.endDate = 'Fecha de fin requerida';
 
@@ -69,13 +74,16 @@ export default function CreateTournament() {
         name: formData.name,
         game: formData.game,
         description: formData.description,
-        maxPlayers: parseInt(formData.maxPlayers),
+        maxParticipants: parseInt(formData.maxParticipants),
         format: formData.format,
-        startDate: new Date(formData.startDate),
-        endDate: new Date(formData.endDate),
+        registrationStartDate: formData.registrationStartDate,
+        registrationEndDate: formData.registrationEndDate,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
       };
 
-      const newTournament = await tournamentsAPI.create(tournamentData);
+      const response = await tournamentsAPI.create(tournamentData);
+      const newTournament = response.data.data;
       alert('¡Torneo creado exitosamente!');
       navigate(`/tournaments/${newTournament._id}`);
     } catch (err) {
@@ -182,22 +190,54 @@ export default function CreateTournament() {
                 </Select>
               </div>
 
-              {/* Max Players */}
+              {/* Max Participants */}
               <div className="space-y-2">
-                <label htmlFor="maxPlayers" className="text-sm font-medium text-foreground">
+                <label htmlFor="maxParticipants" className="text-sm font-medium text-foreground">
                   Capacidad Máxima
                 </label>
                 <Input
-                  id="maxPlayers"
-                  name="maxPlayers"
+                  id="maxParticipants"
+                  name="maxParticipants"
                   type="number"
                   min="2"
                   max="1000"
-                  value={formData.maxPlayers}
+                  value={formData.maxParticipants}
                   onChange={handleChange}
-                  className={errors.maxPlayers ? 'border-destructive' : ''}
+                  className={errors.maxParticipants ? 'border-destructive' : ''}
                 />
-                {errors.maxPlayers && <p className="text-sm text-destructive">{errors.maxPlayers}</p>}
+                {errors.maxParticipants && <p className="text-sm text-destructive">{errors.maxParticipants}</p>}
+              </div>
+
+              {/* Fechas de Inscripción */}
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="registrationStartDate" className="text-sm font-medium text-foreground">
+                    Inicio de Inscripciones
+                  </label>
+                  <Input
+                    id="registrationStartDate"
+                    name="registrationStartDate"
+                    type="datetime-local"
+                    value={formData.registrationStartDate}
+                    onChange={handleChange}
+                    className={errors.registrationStartDate ? 'border-destructive' : ''}
+                  />
+                  {errors.registrationStartDate && <p className="text-sm text-destructive">{errors.registrationStartDate}</p>}
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="registrationEndDate" className="text-sm font-medium text-foreground">
+                    Fin de Inscripciones
+                  </label>
+                  <Input
+                    id="registrationEndDate"
+                    name="registrationEndDate"
+                    type="datetime-local"
+                    value={formData.registrationEndDate}
+                    onChange={handleChange}
+                    className={errors.registrationEndDate ? 'border-destructive' : ''}
+                  />
+                  {errors.registrationEndDate && <p className="text-sm text-destructive">{errors.registrationEndDate}</p>}
+                </div>
               </div>
 
               {/* Fechas */}

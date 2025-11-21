@@ -10,6 +10,7 @@ import Team from '../models/Team.js';
 export const createTournament = async (tournamentData, createdBy) => {
   const tournament = await Tournament.create({
     ...tournamentData,
+    owner: createdBy,
     createdBy
   });
   return tournament;

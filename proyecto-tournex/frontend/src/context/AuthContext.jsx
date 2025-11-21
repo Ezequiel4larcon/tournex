@@ -46,8 +46,15 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (err) {
-      setError(err.message || 'Error al registrar usuario');
-      return { success: false, error: err };
+      const errorMessage = err.message || 'Error al registrar usuario';
+      setError(errorMessage);
+      return { 
+        success: false, 
+        error: {
+          message: errorMessage,
+          errors: err.errors || []
+        }
+      };
     }
   };
 
@@ -67,8 +74,15 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (err) {
-      setError(err.message || 'Error al iniciar sesión');
-      return { success: false, error: err };
+      const errorMessage = err.message || 'Error al iniciar sesión';
+      setError(errorMessage);
+      return { 
+        success: false, 
+        error: {
+          message: errorMessage,
+          errors: err.errors || []
+        }
+      };
     }
   };
 

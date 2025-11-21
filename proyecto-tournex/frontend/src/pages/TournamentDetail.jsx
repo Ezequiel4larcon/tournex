@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Gamepad2, ArrowLeft, Users, Trophy, Calendar, Zap, CheckCircle2 } from 'lucide-react';
+import { Gamepad2, ArrowLeft, Users, Trophy, Calendar, Zap, CheckCircle2, Settings, Play, Grid3x3 } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
 import { getSocket, joinTournament } from '../utils/socket';
@@ -49,17 +49,19 @@ export default function TournamentDetail() {
   const loadTournament = async () => {
     try {
       setLoading(true);
-      const data = await tournamentsAPI.getById(id);
+      const response = await tournamentsAPI.getById(id);
+      const data = response.data.data || response.data;
       setTournament(data);
       
-      // Verificar si el usuario está inscrito
-      const enrolled = data.participants?.some((p) => p.user?._id === user?._id || p.team?.members?.some(m => m._id === user?._id));
+      // Verificar si el usuario está inscrito (solo jugadores individuales ahora)
+      const enrolled = data.participants?.some((p) => p.player?._id === user?._id);
       setIsEnrolled(enrolled);
       
       // Cargar participantes
       setParticipants(data.participants || []);
     } catch (err) {
-      setError(err.message);
+      console.error('Error loading tournament:', err);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -68,11 +70,11 @@ export default function TournamentDetail() {
   const handleEnroll = async () => {
     try {
       setEnrolling(true);
-      await tournamentsAPI.enroll(id);
+      await tournamentsAPI.register(id, {});
       alert('¡Te has inscrito exitosamente en el torneo!');
       loadTournament();
     } catch (err) {
-      alert(`Error al inscribirse: ${err.message}`);
+      alert(`Error al inscribirse: ${err.response?.data?.message || err.message}`);
     } finally {
       setEnrolling(false);
     }
@@ -137,10 +139,11 @@ export default function TournamentDetail() {
   }
 
   const statusBadge = getStatusBadge(tournament.status);
-  const userRole = user?.role || 'player';
-  const isAdmin = userRole === 'admin' || tournament.createdBy?._id === user?._id;
+  const isOwner = tournament.owner?._id === user?._id || tournament.owner === user?._id;
+  const isSuperAdmin = user?.role === 'super_admin';
+  const canModerate = isOwner || isSuperAdmin;
   const currentPlayers = participants.length;
-  const isFull = currentPlayers >= tournament.maxPlayers;
+  const isFull = currentPlayers >= tournament.maxParticipants;
 
   return (
     <main className="min-h-screen bg-background">
@@ -202,9 +205,9 @@ export default function TournamentDetail() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Creado por</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Organizador</p>
                 <p className="text-sm font-medium text-foreground">
-                  {tournament.createdBy?.username || 'Usuario'}
+                  {tournament.owner?.username || tournament.createdBy?.username || 'Usuario'}
                 </p>
               </div>
             </CardContent>
@@ -246,40 +249,88 @@ export default function TournamentDetail() {
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide">Jugadores</p>
                 <p className="text-sm font-medium text-foreground">
-                  {currentPlayers} / {tournament.maxPlayers}
+                  {currentPlayers} / {tournament.maxParticipants}
                 </p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Admin Actions */}
-        {isAdmin && tournament.status === 'upcoming' && (
-          <Card className="bg-accent/10 border-accent/30 mb-8">
+        {/* Moderator Controls */}
+        {canModerate && (
+          <Card className="bg-primary/10 border-primary/30 mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                Acciones de Administración
+                <Settings className="w-5 h-5" />
+                Panel de Moderación
+                {isOwner && <span className="text-xs bg-primary/20 px-2 py-1 rounded">Organizador</span>}
               </CardTitle>
+              <CardDescription>
+                Controla y administra tu torneo
+              </CardDescription>
             </CardHeader>
-            <CardContent className="flex gap-4">
-              <Button onClick={handleGenerateBracket} className="bg-primary hover:bg-primary/90">
-                Generar Bracket
-              </Button>
-              <Button onClick={handleStartTournament} className="bg-accent hover:bg-accent/90">
-                Iniciar Torneo
-              </Button>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-4">
+                {tournament.status === 'pending' && (
+                  <Button 
+                    onClick={() => {/* TODO: Abrir inscripciones */}} 
+                    className="bg-accent hover:bg-accent/90 flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Abrir Inscripciones
+                  </Button>
+                )}
+                
+                {tournament.status === 'registration_open' && currentPlayers >= 2 && (
+                  <>
+                    <Button 
+                      onClick={handleGenerateBracket} 
+                      className="bg-primary hover:bg-primary/90 flex items-center gap-2"
+                    >
+                      <Grid3x3 className="w-4 h-4" />
+                      Generar Bracket
+                    </Button>
+                    <Button 
+                      onClick={handleStartTournament} 
+                      className="bg-accent hover:bg-accent/90 flex items-center gap-2"
+                    >
+                      <Play className="w-4 h-4" />
+                      Iniciar Torneo
+                    </Button>
+                  </>
+                )}
+                
+                {tournament.status === 'in_progress' && (
+                  <Button 
+                    className="bg-secondary hover:bg-secondary/90"
+                  >
+                    Ver Partidas
+                  </Button>
+                )}
+              </div>
+              
+              <div className="mt-4 p-4 bg-background/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Estado:</strong> {tournament.status === 'pending' && 'Pendiente'} 
+                  {tournament.status === 'registration_open' && 'Inscripciones abiertas'}
+                  {tournament.status === 'in_progress' && 'En progreso'}
+                  {tournament.status === 'completed' && 'Finalizado'}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  <strong>Participantes inscritos:</strong> {currentPlayers} / {tournament.maxParticipants}
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}
 
         {/* Enrollment */}
-        {!isEnrolled && !isFull && tournament.status === 'upcoming' && (
+        {!isEnrolled && !isFull && tournament.status === 'registration_open' && (
           <Card className="bg-card border-border mb-8">
             <CardHeader>
               <CardTitle>Inscripción</CardTitle>
               <CardDescription>
-                {currentPlayers} / {tournament.maxPlayers} jugadores inscritos
+                {currentPlayers} / {tournament.maxParticipants} jugadores inscritos
               </CardDescription>
             </CardHeader>
             <CardContent>

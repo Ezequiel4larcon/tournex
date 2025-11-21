@@ -9,6 +9,9 @@ import TournamentParticipant from '../models/TournamentParticipant.js';
  * @access  Admin
  */
 export const createTournament = asyncHandler(async (req, res) => {
+  console.log('Creating tournament with user:', req.user?._id);
+  console.log('Tournament data:', req.body);
+  
   const tournament = await tournamentService.createTournament(req.body, req.user._id);
   
   res.status(201).json({

@@ -55,14 +55,29 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      await login({
-        identifier: formData.email,
+      const result = await login({
+        email: formData.email,
         password: formData.password
       });
-      navigate('/tournaments');
+
+      if (result.success) {
+        navigate('/tournaments');
+      } else {
+        // Manejar errores de validación del backend
+        const backendErrors = {};
+        if (result.error?.errors) {
+          result.error.errors.forEach(err => {
+            backendErrors[err.field] = err.message;
+          });
+        }
+        setErrors({
+          ...backendErrors,
+          submit: result.error?.message || 'Error al iniciar sesión'
+        });
+      }
     } catch (error) {
       setErrors({
-        submit: error.response?.data?.message || 'Error al iniciar sesión'
+        submit: error.message || 'Error al iniciar sesión'
       });
     } finally {
       setIsLoading(false);

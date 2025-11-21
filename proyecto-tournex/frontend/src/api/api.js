@@ -54,6 +54,7 @@ export const tournamentsAPI = {
   delete: (id) => api.delete(`/tournaments/${id}`),
   register: (id, data) => api.post(`/tournaments/${id}/register`, data),
   generateBracket: (id) => api.post(`/tournaments/${id}/generate-bracket`),
+  start: (id) => api.post(`/tournaments/${id}/start`),
   getMatches: (id) => api.get(`/tournaments/${id}/matches`),
 };
 
