@@ -2,6 +2,7 @@ import express from 'express';
 import { body, query } from 'express-validator';
 import * as tournamentController from '../controllers/tournament.controller.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
+import { isSuperAdmin, isTournamentOwnerOrSuperAdmin } from '../middlewares/roleMiddleware.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 
 const router = express.Router();
@@ -20,8 +21,6 @@ const createTournamentValidation = [
 ];
 
 const registerValidation = [
-  body('participantType').isIn(['player', 'team']).withMessage('Invalid participant type'),
-  body('teamId').optional().isMongoId().withMessage('Invalid team ID'),
   validateRequest
 ];
 
@@ -30,27 +29,31 @@ router.get('/', tournamentController.getAllTournaments);
 router.get('/:id', tournamentController.getTournamentById);
 router.get('/:id/matches', tournamentController.getTournamentMatches);
 
-// Rutas protegidas
+// Rutas protegidas - Cualquier usuario autenticado puede crear torneos
 router.post(
   '/',
   protect,
-  authorize('admin'),
   createTournamentValidation,
   tournamentController.createTournament
 );
 
+// Solo el owner del torneo o super admin pueden actualizar
 router.put(
   '/:id',
   protect,
+  isTournamentOwnerOrSuperAdmin,
   tournamentController.updateTournament
 );
 
+// Solo el owner del torneo o super admin pueden eliminar
 router.delete(
   '/:id',
   protect,
+  isTournamentOwnerOrSuperAdmin,
   tournamentController.deleteTournament
 );
 
+// Cualquier usuario autenticado puede unirse a un torneo
 router.post(
   '/:id/register',
   protect,
@@ -58,11 +61,20 @@ router.post(
   tournamentController.registerForTournament
 );
 
+// Owner del torneo o super admin pueden generar brackets
 router.post(
   '/:id/generate-bracket',
   protect,
-  authorize('admin'),
+  isTournamentOwnerOrSuperAdmin,
   tournamentController.generateBracket
+);
+
+// Owner del torneo o super admin pueden iniciar el torneo
+router.post(
+  '/:id/start',
+  protect,
+  isTournamentOwnerOrSuperAdmin,
+  tournamentController.startTournament
 );
 
 export default router;

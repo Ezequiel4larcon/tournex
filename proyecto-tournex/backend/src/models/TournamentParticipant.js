@@ -6,25 +6,15 @@ const tournamentParticipantSchema = new mongoose.Schema({
     ref: 'Tournament',
     required: true
   },
-  participantType: {
-    type: String,
-    enum: ['player', 'team'],
-    required: true
-  },
   player: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    default: null
-  },
-  team: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Team',
-    default: null
+    required: true
   },
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected', 'checked_in', 'eliminated'],
-    default: 'pending'
+    enum: ['registered', 'checked_in', 'eliminated', 'winner'],
+    default: 'registered'
   },
   seed: {
     type: Number,
@@ -33,21 +23,25 @@ const tournamentParticipantSchema = new mongoose.Schema({
   checkedInAt: {
     type: Date,
     default: null
+  },
+  // Estadísticas del jugador en el torneo
+  wins: {
+    type: Number,
+    default: 0
+  },
+  losses: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true
 });
 
 // Índices
+tournamentParticipantSchema.index({ tournament: 1, player: 1 }, { unique: true });
 tournamentParticipantSchema.index({ tournament: 1, status: 1 });
-tournamentParticipantSchema.index({ tournament: 1, player: 1 });
-tournamentParticipantSchema.index({ tournament: 1, team: 1 });
 
-// Validación: debe tener player O team, no ambos
-tournamentParticipantSchema.pre('validate', function(next) {
-  if (this.participantType === 'player' && !this.player) {
-    this.invalidate('player', 'Player is required for player-type participant');
-  }
+export default mongoose.model('TournamentParticipant', tournamentParticipantSchema);
   if (this.participantType === 'team' && !this.team) {
     this.invalidate('team', 'Team is required for team-type participant');
   }

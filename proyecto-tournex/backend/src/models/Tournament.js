@@ -21,10 +21,6 @@ const tournamentSchema = new mongoose.Schema({
     enum: ['single_elimination', 'double_elimination', 'round_robin', 'swiss'],
     default: 'single_elimination'
   },
-  teamBased: {
-    type: Boolean,
-    default: false // false = individual players, true = teams
-  },
   maxParticipants: {
     type: Number,
     required: [true, 'Max participants is required'],
@@ -33,14 +29,6 @@ const tournamentSchema = new mongoose.Schema({
   currentParticipants: {
     type: Number,
     default: 0
-  },
-  minTeamSize: {
-    type: Number,
-    default: 1
-  },
-  maxTeamSize: {
-    type: Number,
-    default: 5
   },
   status: {
     type: String,
@@ -80,12 +68,20 @@ const tournamentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  logo: {
+  // El creador es el owner/moderador del torneo
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  image: {
     type: String,
     default: null
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Índices

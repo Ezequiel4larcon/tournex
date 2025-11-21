@@ -2,6 +2,7 @@ import express from 'express';
 import { body } from 'express-validator';
 import * as teamController from '../controllers/team.controller.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { isSuperAdmin, isAdmin } from '../middlewares/roleMiddleware.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 
 const router = express.Router();
@@ -77,6 +78,21 @@ router.post(
   '/:id/leave',
   protect,
   teamController.leaveTeam
+);
+
+// Rutas de moderación - Solo super admin
+router.delete(
+  '/:id/moderate',
+  protect,
+  isSuperAdmin,
+  teamController.deleteTeam
+);
+
+router.put(
+  '/:id/moderate',
+  protect,
+  isSuperAdmin,
+  teamController.updateTeam
 );
 
 export default router;

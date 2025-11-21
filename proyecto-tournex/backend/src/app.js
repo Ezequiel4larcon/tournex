@@ -12,6 +12,7 @@ import teamRoutes from './routes/team.routes.js';
 import matchRoutes from './routes/match.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import messageRoutes from './routes/message.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/matches', matchRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/users', userRoutes);
 
 // Manejadores de errores
 app.use(notFound);

@@ -41,7 +41,7 @@ const matchSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'in_progress', 'completed', 'disputed', 'cancelled'],
+    enum: ['pending', 'in_progress', 'completed', 'cancelled'],
     default: 'pending'
   },
   scheduledTime: {
@@ -52,9 +52,19 @@ const matchSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  assignedReferee: {
+  // El owner del torneo valida los resultados (actúa como árbitro)
+  validatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    default: null
+  },
+  validatedAt: {
+    type: Date,
+    default: null
+  },
+  notes: {
+    type: String,
+    maxlength: 1000,
     default: null
   },
   nextMatch: {
@@ -72,7 +82,8 @@ const matchSchema = new mongoose.Schema({
 
 // Índices
 matchSchema.index({ tournament: 1, round: 1 });
-matchSchema.index({ assignedReferee: 1, status: 1 });
 matchSchema.index({ tournament: 1, status: 1 });
+matchSchema.index({ participant1: 1 });
+matchSchema.index({ participant2: 1 });
 
 export default mongoose.model('Match', matchSchema);

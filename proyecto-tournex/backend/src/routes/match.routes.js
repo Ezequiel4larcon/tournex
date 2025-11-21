@@ -2,6 +2,7 @@ import express from 'express';
 import { body } from 'express-validator';
 import * as matchController from '../controllers/match.controller.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
+import { isTournamentOwnerOrSuperAdmin } from '../middlewares/roleMiddleware.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
 import { upload } from '../middlewares/multerConfig.js';
 
@@ -16,62 +17,16 @@ const reportResultValidation = [
   validateRequest
 ];
 
-const validateReportValidation = [
-  body('validated').optional().isBoolean(),
-  body('disputed').optional().isBoolean(),
-  body('disputeReason').optional().isLength({ max: 500 }),
-  validateRequest
-];
-
-const reassignRefereeValidation = [
-  body('newRefereeId').notEmpty().withMessage('New referee ID required').isMongoId(),
-  validateRequest
-];
-
 // Rutas públicas
 router.get('/:id', matchController.getMatchById);
-router.get('/:id/evidences', matchController.getMatchEvidences);
 
-// Rutas protegidas - Referee
-router.get(
-  '/assigned',
-  protect,
-  authorize('referee'),
-  matchController.getAssignedMatches
-);
-
+// Rutas protegidas - Solo owner del torneo o super admin pueden validar resultados
 router.post(
-  '/:id/report',
+  '/:id/validate-result',
   protect,
-  authorize('referee'),
+  isTournamentOwnerOrSuperAdmin,
   reportResultValidation,
-  matchController.reportMatchResult
-);
-
-router.post(
-  '/:id/evidence',
-  protect,
-  authorize('referee'),
-  upload.single('evidence'),
-  matchController.uploadEvidence
-);
-
-// Rutas protegidas - Admin/Referee
-router.post(
-  '/:id/validate',
-  protect,
-  authorize('admin', 'referee'),
-  validateReportValidation,
-  matchController.validateReport
-);
-
-// Rutas protegidas - Admin only
-router.post(
-  '/:id/reassign',
-  protect,
-  authorize('admin'),
-  reassignRefereeValidation,
-  matchController.reassignReferee
+  matchController.validateMatchResult
 );
 
 export default router;
