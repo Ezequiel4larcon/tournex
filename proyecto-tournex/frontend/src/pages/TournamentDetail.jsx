@@ -16,6 +16,11 @@ export default function TournamentDetail() {
   const [error, setError] = useState(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [registrationDates, setRegistrationDates] = useState({
+    registrationStartDate: '',
+    registrationEndDate: ''
+  });
 
   useEffect(() => {
     loadTournament();
@@ -64,6 +69,30 @@ export default function TournamentDetail() {
       setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenRegistrationModal = () => {
+    // Prellenar con las fechas actuales del torneo
+    setRegistrationDates({
+      registrationStartDate: tournament.registrationStartDate 
+        ? new Date(tournament.registrationStartDate).toISOString().slice(0, 16) 
+        : new Date().toISOString().slice(0, 16),
+      registrationEndDate: tournament.registrationEndDate 
+        ? new Date(tournament.registrationEndDate).toISOString().slice(0, 16)
+        : new Date(tournament.startDate).toISOString().slice(0, 16)
+    });
+    setShowRegistrationModal(true);
+  };
+
+  const handleOpenRegistration = async () => {
+    try {
+      await tournamentsAPI.openRegistration(id, registrationDates);
+      alert('¡Inscripciones abiertas exitosamente!');
+      setShowRegistrationModal(false);
+      loadTournament();
+    } catch (err) {
+      alert(`Error al abrir inscripciones: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -278,7 +307,7 @@ export default function TournamentDetail() {
               <div className="grid md:grid-cols-3 gap-4">
                 {tournament.status === 'pending' && (
                   <Button 
-                    onClick={() => {/* TODO: Abrir inscripciones */}} 
+                    onClick={handleOpenRegistrationModal} 
                     className="bg-accent hover:bg-accent/90 flex items-center gap-2"
                   >
                     <CheckCircle2 className="w-4 h-4" />
@@ -329,8 +358,8 @@ export default function TournamentDetail() {
           </Card>
         )}
 
-        {/* Enrollment */}
-        {!isOwner && !isEnrolled && !isFull && tournament.status === 'registration_open' && (
+        {/* Enrollment Section */}
+        {!isOwner && tournament.status === 'registration_open' && (
           <Card className="bg-card border-border mb-8">
             <CardHeader>
               <CardTitle>Inscripción</CardTitle>
@@ -339,13 +368,40 @@ export default function TournamentDetail() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button
-                onClick={handleEnroll}
-                className="bg-primary hover:bg-primary/90"
-                disabled={enrolling}
-              >
-                {enrolling ? 'Inscribiendo...' : 'Inscribirse en el Torneo'}
-              </Button>
+              {isEnrolled ? (
+                <div className="flex items-center gap-2 text-accent">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span className="font-medium">Ya estás inscrito en este torneo</span>
+                </div>
+              ) : isFull ? (
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-muted-foreground">
+                    El torneo ha alcanzado el límite de participantes
+                  </p>
+                </div>
+              ) : (
+                <Button
+                  onClick={handleEnroll}
+                  className="bg-primary hover:bg-primary/90"
+                  disabled={enrolling}
+                >
+                  {enrolling ? 'Inscribiendo...' : 'Inscribirse en el Torneo'}
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Tournament not open for registration */}
+        {!isOwner && tournament.status !== 'registration_open' && !isEnrolled && (
+          <Card className="bg-muted/30 border-border mb-8">
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground text-center">
+                {tournament.status === 'pending' && 'Las inscripciones aún no han sido abiertas'}
+                {tournament.status === 'in_progress' && 'El torneo ya está en progreso'}
+                {tournament.status === 'completed' && 'Este torneo ha finalizado'}
+                {tournament.status === 'cancelled' && 'Este torneo ha sido cancelado'}
+              </p>
             </CardContent>
           </Card>
         )}
@@ -394,6 +450,65 @@ export default function TournamentDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal para Abrir Inscripciones */}
+      {showRegistrationModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-card border-border max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Abrir Inscripciones</CardTitle>
+              <CardDescription>
+                Configura las fechas de inicio y fin de inscripciones
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Fecha de Inicio de Inscripciones
+                </label>
+                <input
+                  type="datetime-local"
+                  value={registrationDates.registrationStartDate}
+                  onChange={(e) => setRegistrationDates(prev => ({
+                    ...prev,
+                    registrationStartDate: e.target.value
+                  }))}
+                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Fecha de Fin de Inscripciones
+                </label>
+                <input
+                  type="datetime-local"
+                  value={registrationDates.registrationEndDate}
+                  onChange={(e) => setRegistrationDates(prev => ({
+                    ...prev,
+                    registrationEndDate: e.target.value
+                  }))}
+                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                />
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleOpenRegistration}
+                  className="flex-1 bg-accent hover:bg-accent/90"
+                >
+                  Confirmar y Abrir
+                </Button>
+                <Button
+                  onClick={() => setShowRegistrationModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </main>
   );
 }

@@ -61,6 +61,14 @@ router.post(
   tournamentController.registerForTournament
 );
 
+// Owner del torneo o super admin pueden abrir inscripciones
+router.post(
+  '/:id/open-registration',
+  protect,
+  isTournamentOwnerOrSuperAdmin,
+  tournamentController.openRegistration
+);
+
 // Owner del torneo o super admin pueden generar brackets
 router.post(
   '/:id/generate-bracket',

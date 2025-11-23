@@ -3,6 +3,7 @@ import TournamentParticipant from '../models/TournamentParticipant.js';
 import Match from '../models/Match.js';
 import User from '../models/User.js';
 import Team from '../models/Team.js';
+import { getIO } from '../config/socket.js';
 
 /**
  * Crear un nuevo torneo
@@ -135,6 +136,47 @@ export const deleteTournament = async (tournamentId, userId) => {
 };
 
 /**
+ * Abrir inscripciones del torneo
+ */
+export const openRegistration = async (tournamentId, registrationData, userId) => {
+  const tournament = await Tournament.findById(tournamentId);
+
+  if (!tournament) {
+    throw { status: 404, message: 'Tournament not found' };
+  }
+
+  // Solo el owner o super admin pueden abrir inscripciones
+  const user = await User.findById(userId);
+  if (tournament.owner.toString() !== userId.toString() && user.role !== 'super_admin') {
+    throw { status: 403, message: 'Not authorized to modify this tournament' };
+  }
+
+  if (tournament.status !== 'pending') {
+    throw { status: 400, message: 'Registration can only be opened for pending tournaments' };
+  }
+
+  // Actualizar fechas de inscripción si se proporcionan
+  if (registrationData.registrationStartDate) {
+    tournament.registrationStartDate = registrationData.registrationStartDate;
+  }
+  if (registrationData.registrationEndDate) {
+    tournament.registrationEndDate = registrationData.registrationEndDate;
+  }
+
+  // Cambiar status a registration_open
+  tournament.status = 'registration_open';
+  await tournament.save();
+
+  // Emitir evento Socket.IO
+  const io = getIO();
+  if (io) {
+    io.emit('tournament_updated', tournament);
+  }
+
+  return tournament;
+};
+
+/**
  * Registrar participante (jugador o equipo)
  */
 export const registerParticipant = async (tournamentId, participantData) => {
@@ -152,50 +194,39 @@ export const registerParticipant = async (tournamentId, participantData) => {
     throw { status: 400, message: 'Tournament is full' };
   }
 
-  // Validar tipo de participante
-  if (tournament.teamBased && participantData.participantType !== 'team') {
-    throw { status: 400, message: 'This tournament requires team registration' };
-  }
-
-  if (!tournament.teamBased && participantData.participantType !== 'player') {
-    throw { status: 400, message: 'This tournament is for individual players only' };
+  // Verificar que el jugador no sea el owner del torneo
+  if (tournament.owner.toString() === participantData.player.toString()) {
+    throw { status: 400, message: 'Tournament owner cannot register as participant' };
   }
 
   // Verificar si ya está registrado
   const existingParticipant = await TournamentParticipant.findOne({
     tournament: tournamentId,
-    ...(participantData.participantType === 'player' 
-      ? { player: participantData.player }
-      : { team: participantData.team }
-    )
+    player: participantData.player
   });
 
   if (existingParticipant) {
     throw { status: 400, message: 'Already registered in this tournament' };
   }
 
-  // Si es equipo, validar tamaño
-  if (participantData.participantType === 'team') {
-    const team = await Team.findById(participantData.team);
-    if (!team) {
-      throw { status: 404, message: 'Team not found' };
-    }
-
-    const teamSize = team.members.length + 1; // +1 por el capitán
-    if (teamSize < tournament.minTeamSize || teamSize > tournament.maxTeamSize) {
-      throw { status: 400, message: `Team size must be between ${tournament.minTeamSize} and ${tournament.maxTeamSize}` };
-    }
-  }
-
   const participant = await TournamentParticipant.create({
     tournament: tournamentId,
-    ...participantData,
-    status: 'approved' // Auto-approve por ahora
+    player: participantData.player,
+    status: 'approved' // Auto-approve
   });
 
   // Actualizar contador
   tournament.currentParticipants += 1;
   await tournament.save();
+
+  // Emitir evento de Socket.IO
+  const io = getIO();
+  if (io) {
+    io.to(`tournament_${tournamentId}`).emit('participant_joined', {
+      tournamentId,
+      participant: await TournamentParticipant.findById(participant._id).populate('player', 'username email')
+    });
+  }
 
   return participant;
 };

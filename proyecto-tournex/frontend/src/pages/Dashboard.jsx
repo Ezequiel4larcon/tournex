@@ -105,7 +105,7 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link to="/dashboard" className="flex items-center gap-2">
             <Gamepad2 className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">Tournament Hub</h1>
+            <h1 className="text-2xl font-bold text-foreground">TourneX</h1>
           </Link>
           <div className="flex gap-4 items-center">
             <span className="text-sm text-muted-foreground capitalize">

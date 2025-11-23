@@ -83,15 +83,32 @@ export const deleteTournament = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @route   POST /api/tournaments/:id/open-registration
+ * @desc    Abrir inscripciones de un torneo
+ * @access  Owner/Super Admin
+ */
+export const openRegistration = asyncHandler(async (req, res) => {
+  const tournament = await tournamentService.openRegistration(
+    req.params.id,
+    req.body,
+    req.user._id
+  );
+  
+  res.status(200).json({
+    success: true,
+    message: 'Registration opened successfully',
+    data: tournament
+  });
+});
+
+/**
  * @route   POST /api/tournaments/:id/register
  * @desc    Registrarse en un torneo
  * @access  Player/Captain
  */
 export const registerForTournament = asyncHandler(async (req, res) => {
   const participantData = {
-    ...req.body,
-    player: req.body.participantType === 'player' ? req.user._id : undefined,
-    team: req.body.participantType === 'team' ? req.body.teamId : undefined
+    player: req.user._id // Solo jugadores individuales ahora
   };
 
   const participant = await tournamentService.registerParticipant(
