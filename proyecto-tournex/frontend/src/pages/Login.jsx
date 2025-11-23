@@ -61,7 +61,7 @@ const Login = () => {
       });
 
       if (result.success) {
-        navigate('/tournaments');
+        navigate('/dashboard');
       } else {
         // Manejar errores de validación del backend
         const backendErrors = {};

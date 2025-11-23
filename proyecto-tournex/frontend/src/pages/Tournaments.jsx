@@ -103,7 +103,7 @@ export default function Tournaments() {
       {/* Navigation */}
       <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/dashboard" className="flex items-center gap-2">
             <Gamepad2 className="w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold text-foreground">TourneX</h1>
           </Link>

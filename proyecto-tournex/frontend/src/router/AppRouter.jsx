@@ -6,6 +6,7 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
+import Dashboard from '../pages/Dashboard';
 import NewPost from '../pages/NewPost';
 import CommentDetail from '../pages/CommentDetail';
 import Tournaments from '../pages/Tournaments';
@@ -25,6 +26,16 @@ const AppRouter = () => {
               
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
+              
+              {/* Dashboard Route */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
               
               {/* Tournament Routes */}
               <Route path="/tournaments" element={<Tournaments />} />
