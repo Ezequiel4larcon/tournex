@@ -162,6 +162,11 @@ export default function Tournaments() {
           {filteredTournaments.map((tournament) => {
             const currentPlayers = tournament.currentParticipants || 0;
             const isFull = currentPlayers >= tournament.maxParticipants;
+            
+            // Verificar si el usuario es el owner del torneo
+            const ownerId = tournament.owner?._id || tournament.owner;
+            const userId = user?._id;
+            const isOwner = ownerId && userId && ownerId === userId;
 
             return (
               <Card
@@ -192,7 +197,7 @@ export default function Tournaments() {
                     </div>
                     <Link to={`/tournaments/${tournament._id}`}>
                       <Button className="bg-primary hover:bg-primary/90">
-                        {isFull ? 'Ver' : 'Inscribirse'}
+                        {isOwner ? 'Moderar' : (isFull ? 'Ver' : 'Inscribirse')}
                       </Button>
                     </Link>
                   </div>

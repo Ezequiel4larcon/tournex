@@ -139,7 +139,12 @@ export default function TournamentDetail() {
   }
 
   const statusBadge = getStatusBadge(tournament.status);
-  const isOwner = tournament.owner?._id === user?._id || tournament.owner === user?._id;
+  
+  // Verificar si el usuario es el owner del torneo
+  const ownerId = tournament.owner?._id || tournament.owner;
+  const userId = user?._id;
+  const isOwner = ownerId && userId && ownerId === userId;
+  
   const isSuperAdmin = user?.role === 'super_admin';
   const canModerate = isOwner || isSuperAdmin;
   const currentPlayers = participants.length;
@@ -325,7 +330,7 @@ export default function TournamentDetail() {
         )}
 
         {/* Enrollment */}
-        {!isEnrolled && !isFull && tournament.status === 'registration_open' && (
+        {!isOwner && !isEnrolled && !isFull && tournament.status === 'registration_open' && (
           <Card className="bg-card border-border mb-8">
             <CardHeader>
               <CardTitle>Inscripción</CardTitle>
