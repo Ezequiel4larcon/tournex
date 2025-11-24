@@ -12,6 +12,7 @@ import CommentDetail from '../pages/CommentDetail';
 import Tournaments from '../pages/Tournaments';
 import CreateTournament from '../pages/CreateTournament';
 import TournamentDetail from '../pages/TournamentDetail';
+import TournamentBracket from '../pages/TournamentBracket';
 
 const AppRouter = () => {
   return (
@@ -37,9 +38,31 @@ const AppRouter = () => {
                 }
               />
               
-              {/* Tournament Routes */}
-              <Route path="/tournaments" element={<Tournaments />} />
-              <Route path="/tournaments/:id" element={<TournamentDetail />} />
+              {/* Tournament Routes - All Protected */}
+              <Route 
+                path="/tournaments" 
+                element={
+                  <ProtectedRoute>
+                    <Tournaments />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/tournaments/:id" 
+                element={
+                  <ProtectedRoute>
+                    <TournamentDetail />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/tournaments/:id/bracket" 
+                element={
+                  <ProtectedRoute>
+                    <TournamentBracket />
+                  </ProtectedRoute>
+                } 
+              />
               <Route
                 path="/tournaments/create"
                 element={
@@ -58,7 +81,14 @@ const AppRouter = () => {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/comment/:id" element={<CommentDetail />} />
+              <Route 
+                path="/comment/:id" 
+                element={
+                  <ProtectedRoute>
+                    <CommentDetail />
+                  </ProtectedRoute>
+                } 
+              />
             </Routes>
           </div>
         </ForumProvider>

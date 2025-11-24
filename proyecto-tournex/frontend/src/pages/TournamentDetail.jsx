@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Gamepad2, ArrowLeft, Users, Trophy, Calendar, Zap, CheckCircle2, Settings, Play, Grid3x3 } from 'lucide-react';
+import { Gamepad2, ArrowLeft, Users, Trophy, Calendar, Zap, CheckCircle2, Settings, Play, Grid3x3, Edit } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
 import { getSocket, joinTournament } from '../utils/socket';
 
 export default function TournamentDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [tournament, setTournament] = useState(null);
   const [participants, setParticipants] = useState([]);
@@ -18,6 +19,16 @@ export default function TournamentDetail() {
   const [enrolling, setEnrolling] = useState(false);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [registrationDates, setRegistrationDates] = useState({
+    registrationStartDate: '',
+    registrationEndDate: ''
+  });
+  const [showEditDatesModal, setShowEditDatesModal] = useState(false);
+  const [tournamentDates, setTournamentDates] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const [showEditRegistrationDatesModal, setShowEditRegistrationDatesModal] = useState(false);
+  const [editRegistrationDates, setEditRegistrationDates] = useState({
     registrationStartDate: '',
     registrationEndDate: ''
   });
@@ -93,6 +104,52 @@ export default function TournamentDetail() {
       loadTournament();
     } catch (err) {
       alert(`Error al abrir inscripciones: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleOpenEditDatesModal = () => {
+    setTournamentDates({
+      startDate: tournament.startDate 
+        ? new Date(tournament.startDate).toISOString().slice(0, 16) 
+        : new Date().toISOString().slice(0, 16),
+      endDate: tournament.endDate 
+        ? new Date(tournament.endDate).toISOString().slice(0, 16)
+        : new Date().toISOString().slice(0, 16)
+    });
+    setShowEditDatesModal(true);
+  };
+
+  const handleUpdateDates = async () => {
+    try {
+      await tournamentsAPI.update(id, tournamentDates);
+      alert('¡Fechas actualizadas exitosamente!');
+      setShowEditDatesModal(false);
+      loadTournament();
+    } catch (err) {
+      alert(`Error al actualizar fechas: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleOpenEditRegistrationDatesModal = () => {
+    setEditRegistrationDates({
+      registrationStartDate: tournament.registrationStartDate 
+        ? new Date(tournament.registrationStartDate).toISOString().slice(0, 16) 
+        : new Date().toISOString().slice(0, 16),
+      registrationEndDate: tournament.registrationEndDate 
+        ? new Date(tournament.registrationEndDate).toISOString().slice(0, 16)
+        : new Date(tournament.startDate).toISOString().slice(0, 16)
+    });
+    setShowEditRegistrationDatesModal(true);
+  };
+
+  const handleUpdateRegistrationDates = async () => {
+    try {
+      await tournamentsAPI.update(id, editRegistrationDates);
+      alert('¡Fechas de inscripciones actualizadas exitosamente!');
+      setShowEditRegistrationDatesModal(false);
+      loadTournament();
+    } catch (err) {
+      alert(`Error al actualizar fechas de inscripciones: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -305,6 +362,30 @@ export default function TournamentDetail() {
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-3 gap-4">
+                {/* Botón para editar fechas del torneo - siempre disponible si no está completado */}
+                {tournament.status !== 'completed' && tournament.status !== 'cancelled' && (
+                  <Button 
+                    onClick={handleOpenEditDatesModal} 
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Editar Fechas Torneo
+                  </Button>
+                )}
+
+                {/* Botón para editar fechas de inscripciones - siempre disponible si no está completado */}
+                {tournament.status !== 'completed' && tournament.status !== 'cancelled' && (
+                  <Button 
+                    onClick={handleOpenEditRegistrationDatesModal} 
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Editar Fechas Inscripciones
+                  </Button>
+                )}
+
                 {tournament.status === 'pending' && (
                   <Button 
                     onClick={handleOpenRegistrationModal} 
@@ -336,9 +417,11 @@ export default function TournamentDetail() {
                 
                 {tournament.status === 'in_progress' && (
                   <Button 
-                    className="bg-secondary hover:bg-secondary/90"
+                    onClick={() => navigate(`/tournaments/${id}/bracket`)}
+                    className="bg-secondary hover:bg-secondary/90 flex items-center gap-2"
                   >
-                    Ver Partidas
+                    <Grid3x3 className="w-4 h-4" />
+                    Ver Bracket
                   </Button>
                 )}
               </div>
@@ -406,6 +489,30 @@ export default function TournamentDetail() {
           </Card>
         )}
 
+        {/* View Bracket - Available for all users when tournament is in progress */}
+        {tournament.status === 'in_progress' && (
+          <Card className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/30 mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Grid3x3 className="w-5 h-5" />
+                Bracket del Torneo
+              </CardTitle>
+              <CardDescription>
+                El torneo está en progreso. Consulta las partidas y resultados
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => navigate(`/tournaments/${id}/bracket`)}
+                className="bg-accent hover:bg-accent/90 flex items-center gap-2 w-full sm:w-auto"
+              >
+                <Grid3x3 className="w-4 h-4" />
+                Ver Bracket y Partidas
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Participants List */}
         <Card className="bg-card border-border">
           <CardHeader>
@@ -415,8 +522,7 @@ export default function TournamentDetail() {
           <CardContent>
             <div className="space-y-3">
               {participants.map((participant, index) => {
-                const name = participant.team?.name || participant.user?.username || `Participante ${index + 1}`;
-                const type = participant.team ? 'Equipo' : 'Individual';
+                const name = participant.player?.username || participant.user?.username || `Participante ${index + 1}`;
                 const joinedAt = participant.joinedAt || participant.createdAt;
 
                 return (
@@ -430,7 +536,7 @@ export default function TournamentDetail() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">{name}</p>
-                        <p className="text-xs text-muted-foreground">{type}</p>
+                        <p className="text-xs text-muted-foreground">Jugador</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -499,6 +605,124 @@ export default function TournamentDetail() {
                 </Button>
                 <Button
                   onClick={() => setShowRegistrationModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal para Editar Fechas del Torneo */}
+      {showEditDatesModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-card border-border max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Editar Fechas del Torneo</CardTitle>
+              <CardDescription>
+                Modifica las fechas de inicio y fin del torneo
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Fecha de Inicio del Torneo
+                </label>
+                <input
+                  type="datetime-local"
+                  value={tournamentDates.startDate}
+                  onChange={(e) => setTournamentDates(prev => ({
+                    ...prev,
+                    startDate: e.target.value
+                  }))}
+                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Fecha de Fin del Torneo
+                </label>
+                <input
+                  type="datetime-local"
+                  value={tournamentDates.endDate}
+                  onChange={(e) => setTournamentDates(prev => ({
+                    ...prev,
+                    endDate: e.target.value
+                  }))}
+                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                />
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleUpdateDates}
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                >
+                  Guardar Cambios
+                </Button>
+                <Button
+                  onClick={() => setShowEditDatesModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal para Editar Fechas de Inscripciones */}
+      {showEditRegistrationDatesModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-card border-border max-w-md w-full">
+            <CardHeader>
+              <CardTitle>Editar Fechas de Inscripciones</CardTitle>
+              <CardDescription>
+                Modifica las fechas de apertura y cierre de inscripciones
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Fecha de Inicio de Inscripciones
+                </label>
+                <input
+                  type="datetime-local"
+                  value={editRegistrationDates.registrationStartDate}
+                  onChange={(e) => setEditRegistrationDates(prev => ({
+                    ...prev,
+                    registrationStartDate: e.target.value
+                  }))}
+                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Fecha de Fin de Inscripciones
+                </label>
+                <input
+                  type="datetime-local"
+                  value={editRegistrationDates.registrationEndDate}
+                  onChange={(e) => setEditRegistrationDates(prev => ({
+                    ...prev,
+                    registrationEndDate: e.target.value
+                  }))}
+                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                />
+              </div>
+              <div className="flex gap-3 mt-6">
+                <Button
+                  onClick={handleUpdateRegistrationDates}
+                  className="flex-1 bg-primary hover:bg-primary/90"
+                >
+                  Guardar Cambios
+                </Button>
+                <Button
+                  onClick={() => setShowEditRegistrationDatesModal(false)}
                   variant="outline"
                   className="flex-1"
                 >

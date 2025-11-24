@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Gamepad2, Trophy, Users, Plus, LogOut, Settings, Shield } from 'lucide-react';
+import { Gamepad2, Trophy, Users, Plus, LogOut, Settings, Shield, Grid3x3 } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 
 export default function Dashboard() {
@@ -27,6 +27,9 @@ export default function Dashboard() {
       const data = response.data.data || response.data;
       const allTournaments = data.tournaments || data || [];
       
+      console.log('Usuario actual:', user);
+      console.log('Todos los torneos:', allTournaments);
+      
       setTournaments(allTournaments.slice(0, 3)); // Mostrar últimos 3 torneos
       
       const userId = user?._id;
@@ -34,17 +37,25 @@ export default function Dashboard() {
       // Filtrar torneos donde el usuario es owner/moderador
       const moderated = allTournaments.filter(t => {
         const ownerId = t.owner?._id || t.owner;
-        return ownerId && userId && ownerId === userId;
+        const isOwner = ownerId && userId && ownerId === userId;
+        console.log(`Torneo ${t.name}: owner=${ownerId}, userId=${userId}, isOwner=${isOwner}`);
+        return isOwner;
       });
+      console.log('Torneos moderados:', moderated);
       setModeratedTournaments(moderated);
       
       // Filtrar torneos donde el usuario está inscrito como participante (no owner)
       const participating = allTournaments.filter(t => {
         const ownerId = t.owner?._id || t.owner;
         const isNotOwner = !ownerId || !userId || ownerId !== userId;
-        const isParticipant = t.participants?.some(p => p.player?._id === userId);
+        const isParticipant = t.participants?.some(p => {
+          const playerId = p.player?._id || p.player;
+          return playerId === userId;
+        });
+        console.log(`Torneo ${t.name}: isParticipant=${isParticipant}, participants=`, t.participants);
         return isNotOwner && isParticipant;
       });
+      console.log('Torneos participando:', participating);
       setMyTournaments(participating);
     } catch (err) {
       console.error('Error loading dashboard:', err);
@@ -297,11 +308,21 @@ export default function Dashboard() {
                     <div className="text-sm text-muted-foreground">
                       {tournament.currentParticipants || 0} / {tournament.maxParticipants} jugadores
                     </div>
-                    <Link to={`/tournaments/${tournament._id}`}>
-                      <Button variant="outline" size="sm">
-                        Ver Detalles
-                      </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                      {tournament.status === 'in_progress' && (
+                        <Link to={`/tournaments/${tournament._id}/bracket`}>
+                          <Button className="bg-accent hover:bg-accent/90 flex items-center gap-1" size="sm">
+                            <Grid3x3 className="w-4 h-4" />
+                            Ver Bracket
+                          </Button>
+                        </Link>
+                      )}
+                      <Link to={`/tournaments/${tournament._id}`}>
+                        <Button variant="outline" size="sm">
+                          Ver Detalles
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -328,11 +349,21 @@ export default function Dashboard() {
                     <div className="text-sm text-muted-foreground">
                       {tournament.currentParticipants || 0} / {tournament.maxParticipants} jugadores
                     </div>
-                    <Link to={`/tournaments/${tournament._id}`}>
-                      <Button className="bg-accent hover:bg-accent/90" size="sm">
-                        Moderar
-                      </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                      {tournament.status === 'in_progress' && (
+                        <Link to={`/tournaments/${tournament._id}/bracket`}>
+                          <Button className="bg-primary hover:bg-primary/90 flex items-center gap-1" size="sm">
+                            <Grid3x3 className="w-4 h-4" />
+                            Ver Bracket
+                          </Button>
+                        </Link>
+                      )}
+                      <Link to={`/tournaments/${tournament._id}`}>
+                        <Button className="bg-accent hover:bg-accent/90" size="sm">
+                          Moderar
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

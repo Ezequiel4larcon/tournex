@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Gamepad2, Trophy, Users, Zap } from 'lucide-react';
+import { Gamepad2, Trophy, Users, Zap, LogOut, User } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const Home = () => {
+  const { user, logout } = useAuth();
   const features = [
     {
       icon: Trophy,
@@ -36,13 +38,37 @@ const Home = () => {
             <Gamepad2 className="w-8 h-8 text-primary" />
             <h1 className="text-xl sm:text-2xl font-bold text-foreground">TourneX</h1>
           </Link>
-          <div className="flex gap-2 sm:gap-4">
-            <Link to="/login">
-              <Button variant="ghost" className="text-sm sm:text-base">Iniciar Sesión</Button>
-            </Link>
-            <Link to="/register">
-              <Button className="bg-primary hover:bg-primary/90 text-sm sm:text-base">Registrarse</Button>
-            </Link>
+          <div className="flex gap-2 sm:gap-4 items-center">
+            {user ? (
+              <>
+                <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                  <User className="w-4 h-4" />
+                  <span>Hola, {user.username}</span>
+                </div>
+                <Link to="/dashboard">
+                  <Button className="bg-primary hover:bg-primary/90 text-sm sm:text-base">
+                    Mi Dashboard
+                  </Button>
+                </Link>
+                <Button 
+                  onClick={logout} 
+                  variant="ghost" 
+                  className="text-sm sm:text-base"
+                >
+                  <LogOut className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Cerrar Sesión</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost" className="text-sm sm:text-base">Iniciar Sesión</Button>
+                </Link>
+                <Link to="/register">
+                  <Button className="bg-primary hover:bg-primary/90 text-sm sm:text-base">Registrarse</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -60,16 +86,33 @@ const Home = () => {
               Desde registración hasta resultados finales.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link to="/register" className="w-full sm:w-auto">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 w-full sm:w-auto transform hover:scale-105 transition-transform">
-                  Comenzar Ahora
-                </Button>
-              </Link>
-              <Link to="/tournaments" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto transform hover:scale-105 transition-transform">
-                  Explorar Demo
-                </Button>
-              </Link>
+              {user ? (
+                <>
+                  <Link to="/dashboard" className="w-full sm:w-auto">
+                    <Button size="lg" className="bg-primary hover:bg-primary/90 w-full sm:w-auto transform hover:scale-105 transition-transform">
+                      Ir al Dashboard
+                    </Button>
+                  </Link>
+                  <Link to="/tournaments" className="w-full sm:w-auto">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto transform hover:scale-105 transition-transform">
+                      Ver Torneos
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/register" className="w-full sm:w-auto">
+                    <Button size="lg" className="bg-primary hover:bg-primary/90 w-full sm:w-auto transform hover:scale-105 transition-transform">
+                      Comenzar Ahora
+                    </Button>
+                  </Link>
+                  <Link to="/login" className="w-full sm:w-auto">
+                    <Button size="lg" variant="outline" className="w-full sm:w-auto transform hover:scale-105 transition-transform">
+                      Iniciar Sesión
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
 

@@ -2,7 +2,6 @@ import Tournament from '../models/Tournament.js';
 import TournamentParticipant from '../models/TournamentParticipant.js';
 import Match from '../models/Match.js';
 import User from '../models/User.js';
-import Team from '../models/Team.js';
 import { getIO } from '../config/socket.js';
 
 /**
@@ -21,26 +20,40 @@ export const createTournament = async (tournamentData, createdBy) => {
  * Obtener todos los torneos con filtros
  */
 export const getAllTournaments = async (filters = {}) => {
-  const { status, game, teamBased, page = 1, limit = 10 } = filters;
+  const { status, game, page = 1, limit = 10 } = filters;
   
   const query = {};
   if (status) query.status = status;
   if (game) query.game = new RegExp(game, 'i');
-  if (teamBased !== undefined) query.teamBased = teamBased;
 
   const skip = (page - 1) * limit;
 
   const tournaments = await Tournament
     .find(query)
     .populate('createdBy', 'username email')
+    .populate('owner', 'username email')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
 
+  // Obtener participantes para cada torneo
+  const tournamentsWithParticipants = await Promise.all(
+    tournaments.map(async (tournament) => {
+      const participants = await TournamentParticipant
+        .find({ tournament: tournament._id })
+        .populate('player', 'username email');
+      
+      return {
+        ...tournament.toObject(),
+        participants
+      };
+    })
+  );
+
   const total = await Tournament.countDocuments(query);
 
   return {
-    tournaments,
+    tournaments: tournamentsWithParticipants,
     pagination: {
       page: parseInt(page),
       limit: parseInt(limit),
@@ -65,8 +78,7 @@ export const getTournamentById = async (tournamentId) => {
   // Obtener participantes
   const participants = await TournamentParticipant
     .find({ tournament: tournamentId, status: { $ne: 'rejected' } })
-    .populate('player', 'username avatar')
-    .populate('team', 'name logo captain');
+    .populate('player', 'username avatar');
 
   return {
     ...tournament.toObject(),
@@ -94,7 +106,7 @@ export const updateTournament = async (tournamentId, updateData, userId) => {
 
   // No permitir ciertos cambios si el torneo ya empezó
   if (tournament.status === 'in_progress' || tournament.status === 'completed') {
-    const restrictedFields = ['maxParticipants', 'teamBased', 'format'];
+    const restrictedFields = ['maxParticipants', 'format'];
     const hasRestrictedChange = restrictedFields.some(field => updateData[field] !== undefined);
     if (hasRestrictedChange) {
       throw { status: 400, message: 'Cannot modify these fields after tournament started' };
@@ -212,7 +224,7 @@ export const registerParticipant = async (tournamentId, participantData) => {
   const participant = await TournamentParticipant.create({
     tournament: tournamentId,
     player: participantData.player,
-    status: 'approved' // Auto-approve
+    status: 'registered'
   });
 
   // Actualizar contador
@@ -257,10 +269,10 @@ export const generateBracket = async (tournamentId, userId) => {
     throw { status: 400, message: 'Need at least 2 participants to generate bracket' };
   }
 
-  // Obtener participantes aprobados
+  // Obtener participantes registrados
   const participants = await TournamentParticipant.find({
     tournament: tournamentId,
-    status: 'approved'
+    status: 'registered'
   });
 
   // Obtener árbitros disponibles
@@ -320,20 +332,13 @@ export const getTournamentMatches = async (tournamentId, round = null) => {
     .find(query)
     .populate({
       path: 'participant1',
-      populate: [
-        { path: 'player', select: 'username avatar' },
-        { path: 'team', select: 'name logo' }
-      ]
+      populate: { path: 'player', select: 'username avatar' }
     })
     .populate({
       path: 'participant2',
-      populate: [
-        { path: 'player', select: 'username avatar' },
-        { path: 'team', select: 'name logo' }
-      ]
+      populate: { path: 'player', select: 'username avatar' }
     })
     .populate('winner')
-    .populate('assignedReferee', 'username email')
     .sort({ round: 1, matchNumber: 1 });
 
   return matches;
