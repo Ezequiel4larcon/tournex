@@ -2,15 +2,25 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Gamepad2, ArrowLeft, Trophy, Flame, Clock } from 'lucide-react';
-import { tournamentsAPI } from '../api/api';
+import { Input } from '../components/ui/Input';
+import { Gamepad2, ArrowLeft, Trophy, Flame, Clock, Edit } from 'lucide-react';
+import { tournamentsAPI, matchesAPI } from '../api/api';
+import { useAuth } from '../hooks/useAuth';
 
 export default function TournamentBracket() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [tournament, setTournament] = useState(null);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [reportData, setReportData] = useState({
+    winnerId: '',
+    score: { participant1Score: 0, participant2Score: 0 },
+    notes: ''
+  });
 
   useEffect(() => {
     loadTournamentData();
@@ -36,6 +46,34 @@ export default function TournamentBracket() {
       setLoading(false);
     }
   };
+
+  const handleOpenReportModal = (match) => {
+    setSelectedMatch(match);
+    setReportData({
+      winnerId: '',
+      score: { participant1Score: 0, participant2Score: 0 },
+      notes: ''
+    });
+    setShowReportModal(true);
+  };
+
+  const handleReportResult = async () => {
+    if (!reportData.winnerId) {
+      alert('Selecciona un ganador');
+      return;
+    }
+
+    try {
+      await matchesAPI.report(selectedMatch._id, reportData);
+      alert('¡Resultado reportado exitosamente!');
+      setShowReportModal(false);
+      loadTournamentData();
+    } catch (err) {
+      alert(`Error al reportar resultado: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const isOwner = tournament && user && tournament.owner?._id === user._id;
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -67,8 +105,8 @@ export default function TournamentBracket() {
   const MatchCard = ({ match }) => {
     const player1 = match.participant1?.player?.username || 'TBD';
     const player2 = match.participant2?.player?.username || 'TBD';
-    const score1 = match.score1 || 0;
-    const score2 = match.score2 || 0;
+    const score1 = match.score?.participant1Score || 0;
+    const score2 = match.score?.participant2Score || 0;
 
     return (
       <Card
@@ -113,7 +151,19 @@ export default function TournamentBracket() {
                 {match.round && `Ronda ${match.round}`}
                 {match.matchNumber && ` - Match #${match.matchNumber}`}
               </div>
-              {getStatusBadge(match.status)}
+              <div className="flex items-center gap-2">
+                {getStatusBadge(match.status)}
+                {isOwner && match.status === 'pending' && match.participant1 && match.participant2 && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleOpenReportModal(match)}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <Edit className="w-3 h-3 mr-1" />
+                    Reportar
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
@@ -297,7 +347,7 @@ export default function TournamentBracket() {
 
                   <div className="text-center">
                     <div className="text-5xl font-bold text-destructive mb-4 animate-pulse">
-                      {liveMatch.score1 || 0} - {liveMatch.score2 || 0}
+                      {liveMatch.score?.participant1Score || 0} - {liveMatch.score?.participant2Score || 0}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       Ronda {liveMatch.round} en progreso
@@ -320,6 +370,103 @@ export default function TournamentBracket() {
           </div>
         )}
       </div>
+
+      {/* Modal para reportar resultado */}
+      {showReportModal && selectedMatch && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowReportModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <Card className="bg-card border-border max-w-md w-full">
+              <CardHeader>
+                <CardTitle>Reportar Resultado del Match</CardTitle>
+                <CardDescription>
+                  Ronda {selectedMatch.round} - Match #{selectedMatch.matchNumber}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Seleccionar ganador */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Ganador</label>
+                  <div className="space-y-2">
+                    <div 
+                      className={`p-3 border rounded-md cursor-pointer transition ${
+                        reportData.winnerId === selectedMatch.participant1._id 
+                          ? 'border-primary bg-primary/10' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => setReportData({...reportData, winnerId: selectedMatch.participant1._id})}
+                    >
+                      <p className="font-medium">{selectedMatch.participant1.player?.username}</p>
+                    </div>
+                    <div 
+                      className={`p-3 border rounded-md cursor-pointer transition ${
+                        reportData.winnerId === selectedMatch.participant2._id 
+                          ? 'border-primary bg-primary/10' 
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                      onClick={() => setReportData({...reportData, winnerId: selectedMatch.participant2._id})}
+                    >
+                      <p className="font-medium">{selectedMatch.participant2.player?.username}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Scores */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Score {selectedMatch.participant1.player?.username}
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={reportData.score.participant1Score}
+                      onChange={(e) => setReportData({
+                        ...reportData, 
+                        score: {...reportData.score, participant1Score: parseInt(e.target.value) || 0}
+                      })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Score {selectedMatch.participant2.player?.username}
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={reportData.score.participant2Score}
+                      onChange={(e) => setReportData({
+                        ...reportData, 
+                        score: {...reportData.score, participant2Score: parseInt(e.target.value) || 0}
+                      })}
+                    />
+                  </div>
+                </div>
+
+                {/* Botones */}
+                <div className="flex gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowReportModal(false)}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleReportResult}
+                    className="flex-1 bg-primary hover:bg-primary/90"
+                  >
+                    Reportar Resultado
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </main>
   );
 }

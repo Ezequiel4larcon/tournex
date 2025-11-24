@@ -93,7 +93,8 @@ export const getAllTournaments = async (filters = {}) => {
 export const getTournamentById = async (tournamentId) => {
   const tournament = await Tournament
     .findById(tournamentId)
-    .populate('createdBy', 'username email avatar');
+    .populate('createdBy', 'username email avatar')
+    .populate('owner', 'username email avatar');
 
   if (!tournament) {
     throw { status: 404, message: 'Tournament not found' };
@@ -299,8 +300,8 @@ export const generateBracket = async (tournamentId, userId) => {
     status: 'registered'
   });
 
-  // Obtener árbitros disponibles
-  const referees = await User.find({ role: 'referee', isActive: true });
+  // El creador del torneo será el árbitro de todos los matches
+  const tournamentOwner = tournament.owner;
 
   // Generar matches para la primera ronda
   const matches = [];
@@ -309,7 +310,6 @@ export const generateBracket = async (tournamentId, userId) => {
   const numByes = nextPowerOf2 - numParticipants;
 
   let matchNumber = 1;
-  let refIndex = 0;
 
   for (let i = 0; i < numParticipants; i += 2) {
     const participant1 = participants[i];
@@ -324,11 +324,10 @@ export const generateBracket = async (tournamentId, userId) => {
       isBye: !participant2,
       status: !participant2 ? 'completed' : 'pending',
       winner: !participant2 ? participant1._id : null,
-      assignedReferee: referees.length > 0 ? referees[refIndex % referees.length]._id : null
+      assignedReferee: tournamentOwner
     };
 
     matches.push(match);
-    refIndex++;
   }
 
   await Match.insertMany(matches);
@@ -341,7 +340,7 @@ export const generateBracket = async (tournamentId, userId) => {
   return {
     message: 'Bracket generated successfully',
     matchesCreated: matches.length,
-    refereesAssigned: Math.min(matches.length, referees.length)
+    referee: 'Tournament owner assigned as referee'
   };
 };
 

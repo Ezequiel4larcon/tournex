@@ -16,6 +16,7 @@ export default function TournamentDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [hasMatches, setHasMatches] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [registrationDates, setRegistrationDates] = useState({
@@ -75,6 +76,15 @@ export default function TournamentDetail() {
       
       // Cargar participantes
       setParticipants(data.participants || []);
+      
+      // Verificar si hay matches generados
+      try {
+        const matchesRes = await tournamentsAPI.getMatches(id);
+        const matchesData = matchesRes.data.data || matchesRes.data;
+        setHasMatches(matchesData && matchesData.length > 0);
+      } catch (err) {
+        setHasMatches(false);
+      }
     } catch (err) {
       console.error('Error loading tournament:', err);
       setError(err.response?.data?.message || err.message);
@@ -398,16 +408,6 @@ export default function TournamentDetail() {
                     Iniciar Torneo
                   </Button>
                 )}
-                
-                {tournament.status === 'in_progress' && (
-                  <Button 
-                    onClick={() => navigate(`/tournaments/${id}/bracket`)}
-                    className="bg-secondary hover:bg-secondary/90 flex items-center gap-2"
-                  >
-                    <Grid3x3 className="w-4 h-4" />
-                    Ver Bracket
-                  </Button>
-                )}
               </div>
               
               <div className="mt-4 p-4 bg-background/50 rounded-lg">
@@ -473,8 +473,8 @@ export default function TournamentDetail() {
           </Card>
         )}
 
-        {/* View Bracket - Available for all users when tournament is in progress */}
-        {tournament.status === 'in_progress' && (
+        {/* View Bracket - Available for all users when matches exist */}
+        {hasMatches && (
           <Card className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/30 mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -482,7 +482,9 @@ export default function TournamentDetail() {
                 Bracket del Torneo
               </CardTitle>
               <CardDescription>
-                El torneo está en progreso. Consulta las partidas y resultados
+                {tournament.status === 'in_progress' && 'El torneo está en progreso. Consulta las partidas y resultados'}
+                {tournament.status === 'completed' && 'El torneo ha finalizado. Consulta los resultados finales'}
+                {tournament.status === 'registration_closed' && 'El bracket ha sido generado. El torneo comenzará pronto'}
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -35,7 +35,7 @@ export const getAssignedMatches = async (refereeId) => {
 /**
  * Reportar resultado de un match (CRÍTICA - HU-008)
  */
-export const reportMatchResult = async (matchId, reportData, refereeId) => {
+export const reportMatchResult = async (matchId, reportData, userId) => {
   const match = await Match.findById(matchId)
     .populate('tournament')
     .populate('participant1')
@@ -45,9 +45,13 @@ export const reportMatchResult = async (matchId, reportData, refereeId) => {
     throw { status: 404, message: 'Match not found' };
   }
 
-  // Verificar que el referee esté asignado
-  if (!match.assignedReferee || match.assignedReferee.toString() !== refereeId.toString()) {
-    throw { status: 403, message: 'You are not assigned to this match' };
+  // Verificar que sea el creador del torneo o el árbitro asignado
+  const tournament = await Tournament.findById(match.tournament._id);
+  const isOwner = tournament.owner.toString() === userId.toString();
+  const isAssignedReferee = match.assignedReferee && match.assignedReferee.toString() === userId.toString();
+  
+  if (!isOwner && !isAssignedReferee) {
+    throw { status: 403, message: 'You are not authorized to report this match' };
   }
 
   if (match.status === 'completed') {
@@ -70,15 +74,15 @@ export const reportMatchResult = async (matchId, reportData, refereeId) => {
     // 1. Crear match report
     const report = await MatchReport.create({
       match: matchId,
-      reportedBy: refereeId,
+      reportedBy: userId,
       winner: winnerId,
       score: {
         participant1Score: score.participant1Score,
         participant2Score: score.participant2Score
       },
       notes,
-      validated: true, // Auto-validar si es el árbitro asignado
-      validatedBy: refereeId,
+      validated: true, // Auto-validar si es el creador del torneo o árbitro asignado
+      validatedBy: userId,
       validatedAt: new Date()
     });
 
@@ -104,7 +108,7 @@ export const reportMatchResult = async (matchId, reportData, refereeId) => {
       { status: 'eliminated' }
     );
 
-    // 4. Avanzar bracket si hay siguiente match
+    // 4. Avanzar bracket y generar siguiente ronda si es necesario
     if (match.nextMatch) {
       const nextMatch = await Match.findById(match.nextMatch);
       if (nextMatch) {
@@ -116,17 +120,34 @@ export const reportMatchResult = async (matchId, reportData, refereeId) => {
         await nextMatch.save();
       }
     } else {
-      // Si no hay siguiente match, verificar si el torneo terminó
-      const remainingMatches = await Match.countDocuments({
+      // Verificar si todos los matches de la ronda actual están completos
+      const currentRoundMatches = await Match.find({
         tournament: match.tournament._id,
-        status: { $ne: 'completed' }
+        round: match.round
       });
 
-      if (remainingMatches === 0) {
-        await Tournament.findByIdAndUpdate(
-          match.tournament._id,
-          { status: 'completed' }
-        );
+      const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
+
+      if (allCompleted) {
+        // Obtener ganadores de la ronda actual
+        const winners = currentRoundMatches
+          .filter(m => m.winner)
+          .map(m => m.winner);
+
+        // Si hay más de 1 ganador, crear siguiente ronda
+        if (winners.length > 1) {
+          await generateNextRound(match.tournament._id, match.round + 1, winners);
+        } else if (winners.length === 1) {
+          // Solo queda un ganador, marcar como campeón y finalizar torneo
+          await TournamentParticipant.findByIdAndUpdate(
+            winners[0],
+            { status: 'winner' }
+          );
+          await Tournament.findByIdAndUpdate(
+            match.tournament._id,
+            { status: 'completed' }
+          );
+        }
       }
     }
 
@@ -373,4 +394,45 @@ export const getMatchById = async (matchId) => {
     report,
     evidences
   };
+};
+
+/**
+ * Generar siguiente ronda del torneo
+ */
+const generateNextRound = async (tournamentId, roundNumber, winners) => {
+  const tournament = await Tournament.findById(tournamentId);
+  
+  if (!tournament) {
+    throw { status: 404, message: 'Tournament not found' };
+  }
+
+  const matches = [];
+  let matchNumber = 1;
+
+  // Emparejar ganadores para la siguiente ronda
+  for (let i = 0; i < winners.length; i += 2) {
+    const participant1 = winners[i];
+    const participant2 = i + 1 < winners.length ? winners[i + 1] : null;
+
+    const match = {
+      tournament: tournamentId,
+      round: roundNumber,
+      matchNumber: matchNumber++,
+      participant1: participant1,
+      participant2: participant2,
+      isBye: !participant2,
+      status: !participant2 ? 'completed' : 'pending',
+      winner: !participant2 ? participant1 : null,
+      // El creador del torneo es el árbitro
+      assignedReferee: tournament.owner
+    };
+
+    matches.push(match);
+  }
+
+  if (matches.length > 0) {
+    await Match.insertMany(matches);
+  }
+
+  return matches;
 };

@@ -20,6 +20,14 @@ const reportResultValidation = [
 // Rutas públicas
 router.get('/:id', matchController.getMatchById);
 
+// Rutas protegidas - Reportar resultado del match
+router.post(
+  '/:id/report',
+  protect,
+  reportResultValidation,
+  matchController.reportMatchResult
+);
+
 // Rutas protegidas - Solo owner del torneo o super admin pueden validar resultados
 router.post(
   '/:id/validate-result',

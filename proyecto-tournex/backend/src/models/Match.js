@@ -53,6 +53,11 @@ const matchSchema = new mongoose.Schema({
     default: null
   },
   // El owner del torneo valida los resultados (actúa como árbitro)
+  assignedReferee: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   validatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
