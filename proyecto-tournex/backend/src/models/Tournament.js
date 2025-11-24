@@ -18,13 +18,19 @@ const tournamentSchema = new mongoose.Schema({
   },
   format: {
     type: String,
-    enum: ['single_elimination', 'double_elimination', 'round_robin', 'swiss'],
+    enum: ['single_elimination'],
     default: 'single_elimination'
   },
   maxParticipants: {
     type: Number,
     required: [true, 'Max participants is required'],
-    min: [2, 'Minimum 2 participants required']
+    enum: [2, 4, 8, 16, 32],
+    validate: {
+      validator: function(v) {
+        return [2, 4, 8, 16, 32].includes(v);
+      },
+      message: 'Max participants must be 2, 4, 8, 16, or 32'
+    }
   },
   currentParticipants: {
     type: Number,
@@ -91,13 +97,19 @@ tournamentSchema.index({ createdBy: 1 });
 
 // Validación: startDate debe ser después de registrationEndDate
 tournamentSchema.pre('validate', function(next) {
-  if (this.startDate <= this.registrationEndDate) {
+  // Convertir a Date para comparar correctamente
+  const regStart = this.registrationStartDate ? new Date(this.registrationStartDate) : null;
+  const regEnd = this.registrationEndDate ? new Date(this.registrationEndDate) : null;
+  const start = this.startDate ? new Date(this.startDate) : null;
+  const end = this.endDate ? new Date(this.endDate) : null;
+
+  if (start && regEnd && start <= regEnd) {
     this.invalidate('startDate', 'Start date must be after registration end date');
   }
-  if (this.registrationEndDate <= this.registrationStartDate) {
+  if (regStart && regEnd && regEnd <= regStart) {
     this.invalidate('registrationEndDate', 'Registration end date must be after registration start date');
   }
-  if (this.endDate <= this.startDate) {
+  if (start && end && end <= start) {
     this.invalidate('endDate', 'End date must be after start date');
   }
   next();

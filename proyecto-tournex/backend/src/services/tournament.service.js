@@ -8,11 +8,35 @@ import { getIO } from '../config/socket.js';
  * Crear un nuevo torneo
  */
 export const createTournament = async (tournamentData, createdBy) => {
+  // Validar que maxParticipants sea uno de los valores permitidos
+  const validParticipants = [2, 4, 8, 16, 32];
+  if (!validParticipants.includes(tournamentData.maxParticipants)) {
+    throw { status: 400, message: 'Max participants must be 2, 4, 8, 16, or 32' };
+  }
+
+  // Determinar el status inicial basado en las fechas de inscripción
+  const now = new Date();
+  const registrationStart = new Date(tournamentData.registrationStartDate);
+  const registrationEnd = new Date(tournamentData.registrationEndDate);
+  
+  let initialStatus = 'pending';
+  if (registrationStart <= now && registrationEnd > now) {
+    // Si ya empezaron las inscripciones y aún no terminan
+    initialStatus = 'registration_open';
+  } else if (registrationEnd <= now) {
+    // Si ya terminaron las inscripciones
+    initialStatus = 'registration_closed';
+  }
+
+  // Forzar formato a single_elimination
   const tournament = await Tournament.create({
     ...tournamentData,
+    format: 'single_elimination',
+    status: initialStatus,
     owner: createdBy,
     createdBy
   });
+  
   return tournament;
 };
 
@@ -163,8 +187,8 @@ export const openRegistration = async (tournamentId, registrationData, userId) =
     throw { status: 403, message: 'Not authorized to modify this tournament' };
   }
 
-  if (tournament.status !== 'pending') {
-    throw { status: 400, message: 'Registration can only be opened for pending tournaments' };
+  if (!['pending', 'registration_closed'].includes(tournament.status)) {
+    throw { status: 400, message: 'Registration can only be opened for pending or closed tournaments' };
   }
 
   // Actualizar fechas de inscripción si se proporcionan

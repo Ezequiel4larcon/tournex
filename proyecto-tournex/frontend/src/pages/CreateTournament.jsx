@@ -14,7 +14,7 @@ export default function CreateTournament() {
     name: '',
     game: '',
     description: '',
-    maxParticipants: '32',
+    maxParticipants: '8',
     format: 'single_elimination',
     registrationStartDate: '',
     registrationEndDate: '',
@@ -25,12 +25,7 @@ export default function CreateTournament() {
   const [isLoading, setIsLoading] = useState(false);
 
   const games = ['Valorant', 'CS2', 'League of Legends', 'Dota 2', 'Overwatch 2', 'Street Fighter 6'];
-  const formats = [
-    { value: 'single_elimination', label: 'Eliminación Simple' },
-    { value: 'double_elimination', label: 'Doble Eliminación' },
-    { value: 'round_robin', label: 'Round Robin' },
-    { value: 'swiss', label: 'Sistema Suizo' },
-  ];
+  const participantOptions = [2, 4, 8, 16, 32];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -48,7 +43,10 @@ export default function CreateTournament() {
 
     if (!formData.game) newErrors.game = 'Selecciona un juego';
     if (!formData.maxParticipants) newErrors.maxParticipants = 'La capacidad es requerida';
-    if (parseInt(formData.maxParticipants) < 2) newErrors.maxParticipants = 'Mínimo 2 jugadores';
+    const validParticipants = [2, 4, 8, 16, 32];
+    if (!validParticipants.includes(parseInt(formData.maxParticipants))) {
+      newErrors.maxParticipants = 'Debe ser 2, 4, 8, 16 o 32 jugadores';
+    }
 
     if (!formData.registrationStartDate) newErrors.registrationStartDate = 'Fecha de inicio de inscripciones requerida';
     if (!formData.registrationEndDate) newErrors.registrationEndDate = 'Fecha de fin de inscripciones requerida';
@@ -178,33 +176,33 @@ export default function CreateTournament() {
 
               {/* Formato */}
               <div className="space-y-2">
-                <label htmlFor="format" className="text-sm font-medium text-foreground">
+                <label className="text-sm font-medium text-foreground">
                   Formato del Torneo
                 </label>
-                <Select id="format" name="format" value={formData.format} onChange={handleChange}>
-                  {formats.map((format) => (
-                    <option key={format.value} value={format.value}>
-                      {format.label}
-                    </option>
-                  ))}
-                </Select>
+                <div className="px-4 py-3 bg-muted/50 rounded-md border border-border">
+                  <p className="text-sm text-foreground">Eliminación Simple</p>
+                  <p className="text-xs text-muted-foreground mt-1">Los jugadores son eliminados tras una derrota</p>
+                </div>
               </div>
 
               {/* Max Participants */}
               <div className="space-y-2">
                 <label htmlFor="maxParticipants" className="text-sm font-medium text-foreground">
-                  Capacidad Máxima
+                  Cantidad de Jugadores
                 </label>
-                <Input
+                <Select
                   id="maxParticipants"
                   name="maxParticipants"
-                  type="number"
-                  min="2"
-                  max="1000"
                   value={formData.maxParticipants}
                   onChange={handleChange}
                   className={errors.maxParticipants ? 'border-destructive' : ''}
-                />
+                >
+                  {participantOptions.map((num) => (
+                    <option key={num} value={num}>
+                      {num} jugadores
+                    </option>
+                  ))}
+                </Select>
                 {errors.maxParticipants && <p className="text-sm text-destructive">{errors.maxParticipants}</p>}
               </div>
 

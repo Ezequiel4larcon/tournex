@@ -166,23 +166,16 @@ export default function TournamentDetail() {
     }
   };
 
-  const handleGenerateBracket = async () => {
-    try {
-      await tournamentsAPI.generateBracket(id);
-      alert('Bracket generado exitosamente. Árbitros asignados');
-      loadTournament();
-    } catch (err) {
-      alert(`Error al generar bracket: ${err.message}`);
-    }
-  };
-
   const handleStartTournament = async () => {
     try {
+      // Primero generar el bracket
+      await tournamentsAPI.generateBracket(id);
+      // Luego iniciar el torneo
       await tournamentsAPI.start(id);
-      alert('Torneo iniciado');
+      alert('¡Torneo iniciado exitosamente! Bracket generado y árbitros asignados');
       loadTournament();
     } catch (err) {
-      alert(`Error al iniciar torneo: ${err.message}`);
+      alert(`Error al iniciar torneo: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -397,22 +390,13 @@ export default function TournamentDetail() {
                 )}
                 
                 {tournament.status === 'registration_open' && currentPlayers >= 2 && (
-                  <>
-                    <Button 
-                      onClick={handleGenerateBracket} 
-                      className="bg-primary hover:bg-primary/90 flex items-center gap-2"
-                    >
-                      <Grid3x3 className="w-4 h-4" />
-                      Generar Bracket
-                    </Button>
-                    <Button 
-                      onClick={handleStartTournament} 
-                      className="bg-accent hover:bg-accent/90 flex items-center gap-2"
-                    >
-                      <Play className="w-4 h-4" />
-                      Iniciar Torneo
-                    </Button>
-                  </>
+                  <Button 
+                    onClick={handleStartTournament} 
+                    className="bg-accent hover:bg-accent/90 flex items-center gap-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    Iniciar Torneo
+                  </Button>
                 )}
                 
                 {tournament.status === 'in_progress' && (
