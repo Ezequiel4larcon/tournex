@@ -59,20 +59,6 @@ export const tournamentsAPI = {
   getMatches: (id) => api.get(`/tournaments/${id}/matches`),
 };
 
-// Teams API - Deshabilitado (sin equipos en el modelo actual)
-// export const teamsAPI = {
-//   getAll: (params) => api.get('/teams', { params }),
-//   getById: (id) => api.get(`/teams/${id}`),
-//   create: (data) => api.post('/teams', data),
-//   update: (id, data) => api.put(`/teams/${id}`, data),
-//   delete: (id) => api.delete(`/teams/${id}`),
-//   join: (id) => api.post(`/teams/${id}/join`),
-//   getRequests: (id) => api.get(`/teams/${id}/requests`),
-//   respondToRequest: (requestId, action) => api.post(`/teams/requests/${requestId}/respond`, { action }),
-//   kickMember: (teamId, memberId) => api.delete(`/teams/${teamId}/members/${memberId}`),
-//   leave: (id) => api.post(`/teams/${id}/leave`),
-// };
-
 // Matches API
 export const matchesAPI = {
   getAssigned: () => api.get('/matches/assigned'),

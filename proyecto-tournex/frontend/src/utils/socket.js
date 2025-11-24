@@ -53,14 +53,6 @@ export const leaveMatch = (matchId) => {
   if (socket) socket.emit('leave_match', matchId);
 };
 
-export const joinTeam = (teamId) => {
-  if (socket) socket.emit('join_team', teamId);
-};
-
-export const leaveTeam = (teamId) => {
-  if (socket) socket.emit('leave_team', teamId);
-};
-
 // Typing indicators
 export const emitTyping = (contextType, contextId) => {
   if (socket) socket.emit('typing', { contextType, contextId });

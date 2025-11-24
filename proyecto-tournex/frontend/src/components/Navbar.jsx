@@ -62,9 +62,6 @@ const Navbar = () => {
                   <Link to="/tournaments" className="hover:text-blue-200 transition">
                     Torneos
                   </Link>
-                  <Link to="/teams" className="hover:text-blue-200 transition">
-                    Equipos
-                  </Link>
                   <Link to="/new-post" className="hover:text-blue-200 transition">
                     Foro
                   </Link>

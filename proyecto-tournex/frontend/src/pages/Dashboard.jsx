@@ -166,11 +166,11 @@ export default function Dashboard() {
           <h2 className="text-3xl font-bold text-foreground mb-2">
             Bienvenido, {user?.username || 'Jugador'}
           </h2>
-          <p className="text-muted-foreground">Gestiona tus torneos y equipos desde aquí</p>
+          <p className="text-muted-foreground">Gestiona tus torneos desde aquí</p>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid md:grid-cols-4 gap-4 mb-12">
+        <div className="grid md:grid-cols-3 gap-4 mb-12">
           <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -194,19 +194,6 @@ export default function Dashboard() {
             <CardContent>
               <p className="text-3xl font-bold text-accent">{activeModerated.length}</p>
               <p className="text-sm text-muted-foreground">torneos creados</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="w-5 h-5 text-secondary" />
-                Mis Equipos
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-secondary">0</p>
-              <p className="text-sm text-muted-foreground">equipos activos</p>
             </CardContent>
           </Card>
 

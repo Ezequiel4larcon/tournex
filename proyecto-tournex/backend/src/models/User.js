@@ -32,11 +32,6 @@ const userSchema = new mongoose.Schema({
     enum: ['player', 'super_admin'],
     default: 'player'
   },
-  currentTeam: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Team',
-    default: null
-  },
   isActive: {
     type: Boolean,
     default: true

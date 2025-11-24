@@ -13,11 +13,6 @@ const Home = () => {
       description: 'Crea y gestiona torneos con bracket automático',
     },
     {
-      icon: Users,
-      title: 'Equipos',
-      description: 'Organiza jugadores en equipos y gestiona membresías',
-    },
-    {
       icon: Zap,
       title: 'Resultados en Tiempo Real',
       description: 'Reporta y valida resultados instantáneamente',

@@ -45,11 +45,6 @@ export const initializeSocket = (server) => {
     // Unirse a sala personal del usuario
     socket.join(`user:${socket.user._id}`);
 
-    // Unirse a salas de equipos
-    if (socket.user.currentTeam) {
-      socket.join(`team:${socket.user.currentTeam}`);
-    }
-
     // Evento: Unirse a sala de torneo
     socket.on('join_tournament', (tournamentId) => {
       socket.join(`tournament:${tournamentId}`);
@@ -72,18 +67,6 @@ export const initializeSocket = (server) => {
     socket.on('leave_match', (matchId) => {
       socket.leave(`match:${matchId}`);
       console.log(`${socket.user.username} left match:${matchId}`);
-    });
-
-    // Evento: Unirse a sala de equipo
-    socket.on('join_team', (teamId) => {
-      socket.join(`team:${teamId}`);
-      console.log(`${socket.user.username} joined team:${teamId}`);
-    });
-
-    // Evento: Salir de sala de equipo
-    socket.on('leave_team', (teamId) => {
-      socket.leave(`team:${teamId}`);
-      console.log(`${socket.user.username} left team:${teamId}`);
     });
 
     // Evento: Usuario está escribiendo en chat

@@ -52,7 +52,6 @@ export function NotificationsPanel({ isOpen, onClose }) {
       case 'match_started':
       case 'referee_assigned':
         return <Clock className="w-5 h-5 text-blue-500" />;
-      case 'team_invitation':
       case 'request_accepted':
       case 'request_rejected':
       case 'member_joined':
