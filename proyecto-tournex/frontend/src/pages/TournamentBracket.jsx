@@ -64,6 +64,24 @@ export default function TournamentBracket() {
       return;
     }
 
+    // Validar que el ganador tenga más puntos
+    const participant1Score = reportData.score.participant1Score || 0;
+    const participant2Score = reportData.score.participant2Score || 0;
+
+    if (participant1Score === participant2Score) {
+      alert('Los puntajes no pueden ser iguales. Debe haber un ganador.');
+      return;
+    }
+
+    const isParticipant1Winner = reportData.winnerId === selectedMatch.participant1._id;
+    const winnerScore = isParticipant1Winner ? participant1Score : participant2Score;
+    const loserScore = isParticipant1Winner ? participant2Score : participant1Score;
+
+    if (winnerScore <= loserScore) {
+      alert('El ganador debe tener más puntos que el perdedor');
+      return;
+    }
+
     try {
       await matchesAPI.report(selectedMatch._id, reportData);
       setShowReportModal(false);

@@ -62,11 +62,27 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
     throw { status: 400, message: 'Match does not have both participants' };
   }
 
-  // Validar ganador
+  // Validar ganador y puntajes
   const { winnerId, score, notes } = reportData;
   
   if (winnerId !== match.participant1._id.toString() && winnerId !== match.participant2._id.toString()) {
     throw { status: 400, message: 'Invalid winner' };
+  }
+
+  // Validar que el ganador tenga más puntos que el perdedor
+  const participant1Score = score.participant1Score || 0;
+  const participant2Score = score.participant2Score || 0;
+  
+  if (participant1Score === participant2Score) {
+    throw { status: 400, message: 'Los puntajes no pueden ser iguales. Debe haber un ganador.' };
+  }
+
+  const isParticipant1Winner = winnerId === match.participant1._id.toString();
+  const winnerScore = isParticipant1Winner ? participant1Score : participant2Score;
+  const loserScore = isParticipant1Winner ? participant2Score : participant1Score;
+
+  if (winnerScore <= loserScore) {
+    throw { status: 400, message: 'El ganador debe tener más puntos que el perdedor' };
   }
 
   // Iniciar transacción (simulada con operaciones secuenciales)
