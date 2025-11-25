@@ -111,54 +111,6 @@ export default function Dashboard() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <Gamepad2 className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">TourneX</h1>
-          </Link>
-          <div className="flex gap-4 items-center">
-            <span className="text-sm text-muted-foreground capitalize">
-              {user?.role === 'super_admin' ? 'Super Admin' : 'Jugador'}
-            </span>
-            <div className="relative">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="rounded-full"
-                onClick={() => setShowUserMenu(!showUserMenu)}
-              >
-                <div className="w-8 h-8 bg-primary/30 rounded-full flex items-center justify-center text-primary font-bold">
-                  {user?.username?.charAt(0).toUpperCase() || 'U'}
-                </div>
-              </Button>
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-card border border-border rounded-lg shadow-lg py-1">
-                  <button 
-                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-accent/10 flex items-center gap-2"
-                    onClick={() => {
-                      setShowUserMenu(false);
-                      // TODO: Navigate to settings
-                    }}
-                  >
-                    <Settings className="w-4 h-4" />
-                    Configuración
-                  </button>
-                  <button 
-                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-accent/10 flex items-center gap-2"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Cerrar Sesión
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Welcome Section */}

@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import { Gamepad2, ArrowLeft, Trophy, Flame, Clock, Edit } from 'lucide-react';
+import { ArrowLeft, Trophy, Flame, Clock, Edit } from 'lucide-react';
 import { tournamentsAPI, matchesAPI } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -230,16 +230,6 @@ export default function TournamentBracket() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link to="/" className="flex items-center gap-2">
-            <Gamepad2 className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">TourneX</h1>
-          </Link>
-        </div>
-      </nav>
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Link

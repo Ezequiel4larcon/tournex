@@ -46,8 +46,10 @@ const fetchAPI = async (endpoint, options = {}) => {
 
     return data;
   } catch (error) {
-    if (error.status === 401) {
-      // Si es 401, limpiar token y redirigir al login
+    // Solo redirigir al login si hay un 401 Y ya tenemos un token almacenado
+    // Esto significa que el token expiró, no que las credenciales son incorrectas
+    if (error.status === 401 && token && !endpoint.includes('/auth/login')) {
+      // Si es 401 y NO es en la ruta de login, limpiar token y redirigir
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

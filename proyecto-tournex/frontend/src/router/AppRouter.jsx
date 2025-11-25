@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
 import { ForumProvider } from '../context/ForumContext';
-import Navbar from '../components/Navbar';
+import Layout from '../components/Layout';
 import ProtectedRoute from '../components/ProtectedRoute';
 import Home from '../pages/Home';
 import Login from '../pages/Login';
@@ -19,12 +19,13 @@ const AppRouter = () => {
     <BrowserRouter>
       <AuthProvider>
         <ForumProvider>
-          <div className="min-h-screen bg-background">
-            <Routes>
-              {/* Auth Routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              
+          <Routes>
+            {/* Auth Routes - Sin Layout */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            
+            {/* Todas las demás rutas usan el Layout */}
+            <Route element={<Layout />}>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
               
@@ -89,8 +90,8 @@ const AppRouter = () => {
                   </ProtectedRoute>
                 } 
               />
-            </Routes>
-          </div>
+            </Route>
+          </Routes>
         </ForumProvider>
       </AuthProvider>
     </BrowserRouter>

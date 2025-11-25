@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import { Gamepad2, Plus, Search, Users } from 'lucide-react';
+import { Plus, Search, Users } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 import { getSocket } from '../utils/socket';
 
@@ -100,27 +100,6 @@ export default function Tournaments() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <Gamepad2 className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">TourneX</h1>
-          </Link>
-          <div className="flex items-center gap-4">
-            {user && (
-              <span className="text-sm text-muted-foreground">
-                Bienvenido, {user.username}
-              </span>
-            )}
-            <Link to="/dashboard">
-              <Button variant="ghost">Dashboard</Button>
-            </Link>
-            <Button variant="outline" onClick={handleLogout}>Cerrar Sesión</Button>
-          </div>
-        </div>
-      </nav>
-
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}

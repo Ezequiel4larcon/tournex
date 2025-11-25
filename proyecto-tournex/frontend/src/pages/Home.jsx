@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Gamepad2, Trophy, Users, Zap, LogOut, User } from 'lucide-react';
+import { Trophy, Users, Zap, Gamepad2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const Home = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  
   const features = [
     {
       icon: Trophy,
@@ -26,48 +27,6 @@ const Home = () => {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-2 transition-transform hover:scale-105">
-            <Gamepad2 className="w-8 h-8 text-primary" />
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">TourneX</h1>
-          </Link>
-          <div className="flex gap-2 sm:gap-4 items-center">
-            {user ? (
-              <>
-                <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-                  <User className="w-4 h-4" />
-                  <span>Hola, {user.username}</span>
-                </div>
-                <Link to="/dashboard">
-                  <Button className="bg-primary hover:bg-primary/90 text-sm sm:text-base">
-                    Mi Dashboard
-                  </Button>
-                </Link>
-                <Button 
-                  onClick={logout} 
-                  variant="ghost" 
-                  className="text-sm sm:text-base"
-                >
-                  <LogOut className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Cerrar Sesión</span>
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link to="/login">
-                  <Button variant="ghost" className="text-sm sm:text-base">Iniciar Sesión</Button>
-                </Link>
-                <Link to="/register">
-                  <Button className="bg-primary hover:bg-primary/90 text-sm sm:text-base">Registrarse</Button>
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20">
         <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
