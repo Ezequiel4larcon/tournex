@@ -57,6 +57,7 @@ export const tournamentsAPI = {
   generateBracket: (id) => api.post(`/tournaments/${id}/generate-bracket`),
   start: (id) => api.post(`/tournaments/${id}/start`),
   getMatches: (id) => api.get(`/tournaments/${id}/matches`),
+  banParticipant: (id, participantId) => api.post(`/tournaments/${id}/ban/${participantId}`),
 };
 
 // Matches API

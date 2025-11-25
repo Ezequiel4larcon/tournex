@@ -214,9 +214,19 @@ export default function TournamentBracket() {
   };
 
   const getRoundName = (round, totalRounds) => {
-    if (round === totalRounds) return 'Final';
-    if (round === totalRounds - 1) return 'Semifinales';
-    if (round === totalRounds - 2) return 'Cuartos de Final';
+    // Calcular el nombre basado en el número de matches en la primera ronda
+    // Esto determina cuántos participantes hay en el torneo
+    const firstRoundMatches = matches.filter(m => m.round === 1).length;
+    const totalParticipants = firstRoundMatches * 2; // Cada match tiene 2 participantes
+    
+    // Calcular el total de rondas esperadas según los participantes
+    const expectedRounds = Math.log2(totalParticipants);
+    
+    // Determinar el nombre de la ronda según la estructura del torneo
+    if (round === expectedRounds) return 'Final';
+    if (round === expectedRounds - 1) return 'Semifinales';
+    if (round === expectedRounds - 2) return 'Cuartos de Final';
+    if (round === expectedRounds - 3) return 'Octavos de Final';
     return `Ronda ${round}`;
   };
 

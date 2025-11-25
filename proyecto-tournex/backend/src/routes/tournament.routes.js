@@ -85,4 +85,12 @@ router.post(
   tournamentController.startTournament
 );
 
+// Owner del torneo o super admin pueden banear participantes
+router.post(
+  '/:id/ban/:participantId',
+  protect,
+  isTournamentOwnerOrSuperAdmin,
+  tournamentController.banParticipant
+);
+
 export default router;

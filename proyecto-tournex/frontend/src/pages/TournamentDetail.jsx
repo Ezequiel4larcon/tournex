@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { ArrowLeft, Users, Trophy, Calendar, Zap, CheckCircle2, Settings, Play, Grid3x3, Edit } from 'lucide-react';
+import { ArrowLeft, Users, Trophy, Calendar, Zap, CheckCircle2, Settings, Play, Grid3x3, Edit, UserX } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
 import { getSocket, joinTournament } from '../utils/socket';
@@ -33,6 +33,9 @@ export default function TournamentDetail() {
     registrationStartDate: '',
     registrationEndDate: ''
   });
+  const [showBanModal, setShowBanModal] = useState(false);
+  const [participantToBan, setParticipantToBan] = useState(null);
+  const [banning, setBanning] = useState(false);
 
   useEffect(() => {
     loadTournament();
@@ -53,12 +56,22 @@ export default function TournamentDetail() {
           setParticipants((prev) => [...prev, participant]);
         }
       });
+
+      socket.on('participant_banned', ({ tournamentId, participant }) => {
+        if (tournamentId === id) {
+          // Remover el participante baneado de la lista
+          setParticipants((prev) =>
+            prev.filter((p) => p._id !== participant._id)
+          );
+        }
+      });
     }
 
     return () => {
       if (socket) {
         socket.off('tournament_updated');
         socket.off('participant_joined');
+        socket.off('participant_banned');
       }
     };
   }, [id]);
@@ -190,6 +203,28 @@ export default function TournamentDetail() {
       loadTournament();
     } catch (err) {
       alert(`Error al iniciar torneo: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleOpenBanModal = (participant) => {
+    setParticipantToBan(participant);
+    setShowBanModal(true);
+  };
+
+  const handleBanParticipant = async () => {
+    if (!participantToBan) return;
+
+    try {
+      setBanning(true);
+      await tournamentsAPI.banParticipant(id, participantToBan._id);
+      alert(`${participantToBan.player?.username || participantToBan.user?.username || 'El participante'} ha sido baneado y removido del torneo`);
+      setShowBanModal(false);
+      setParticipantToBan(null);
+      loadTournament();
+    } catch (err) {
+      alert(`Error al banear participante: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setBanning(false);
     }
   };
 
@@ -535,9 +570,13 @@ export default function TournamentDetail() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {participants.map((participant, index) => {
+              {participants
+                .filter(participant => participant.status !== 'banned') // Filtrar participantes baneados
+                .map((participant, index) => {
                 const name = participant.player?.username || participant.user?.username || `Participante ${index + 1}`;
                 const joinedAt = participant.joinedAt || participant.createdAt;
+                const canBan = isOwner && 
+                              (tournament.status === 'registration_open' || tournament.status === 'in_progress');
 
                 return (
                   <div
@@ -553,9 +592,21 @@ export default function TournamentDetail() {
                         <p className="text-xs text-muted-foreground">Jugador</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <CheckCircle2 className="w-4 h-4 text-accent" />
-                      {joinedAt ? new Date(joinedAt).toLocaleDateString() : 'Fecha desconocida'}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-accent" />
+                        {joinedAt ? new Date(joinedAt).toLocaleDateString() : 'Fecha desconocida'}
+                      </div>
+                      {canBan && (
+                        <Button
+                          onClick={() => handleOpenBanModal(participant)}
+                          variant="outline"
+                          className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:border-destructive px-3 py-1 h-auto text-xs"
+                        >
+                          <UserX className="w-3 h-3 mr-1" />
+                          Banear
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );
@@ -737,6 +788,57 @@ export default function TournamentDetail() {
                 </Button>
                 <Button
                   onClick={() => setShowEditRegistrationDatesModal(false)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal para Confirmar Baneo de Participante */}
+      {showBanModal && participantToBan && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-card border-border max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="text-destructive flex items-center gap-2">
+                <UserX className="w-5 h-5" />
+                Banear Participante
+              </CardTitle>
+              <CardDescription>
+                Esta acción removerá al participante del torneo
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
+                <p className="text-sm text-foreground">
+                  ¿Estás seguro que deseas banear a{' '}
+                  <span className="font-bold text-destructive">
+                    {participantToBan.player?.username || participantToBan.user?.username || 'este participante'}
+                  </span>
+                  ?
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  El participante será removido del torneo y no podrá volver a inscribirse.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleBanParticipant}
+                  disabled={banning}
+                  className="flex-1 bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                >
+                  {banning ? 'Baneando...' : 'Confirmar Baneo'}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowBanModal(false);
+                    setParticipantToBan(null);
+                  }}
+                  disabled={banning}
                   variant="outline"
                   className="flex-1"
                 >

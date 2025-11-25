@@ -194,3 +194,22 @@ export const startTournament = asyncHandler(async (req, res) => {
     data: tournament
   });
 });
+
+/**
+ * @route   POST /api/tournaments/:id/ban/:participantId
+ * @desc    Banear a un participante del torneo
+ * @access  Owner
+ */
+export const banParticipant = asyncHandler(async (req, res) => {
+  const participant = await tournamentService.banParticipant(
+    req.params.id,
+    req.params.participantId,
+    req.user._id
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Participant banned successfully',
+    data: participant
+  });
+});
