@@ -36,7 +36,7 @@ export const getAssignedMatches = async (refereeId) => {
  * Reportar resultado de un match (CRÍTICA - HU-008)
  */
 export const reportMatchResult = async (matchId, reportData, userId) => {
-  const match = await Match.findById(matchId)
+  let match = await Match.findById(matchId)
     .populate('tournament')
     .populate('participant1')
     .populate('participant2');
@@ -87,11 +87,18 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
     });
 
     // 2. Actualizar match
-    match.status = 'completed';
-    match.winner = winnerId;
-    match.score = score;
-    match.completedAt = new Date();
-    await match.save();
+    await Match.findByIdAndUpdate(matchId, {
+      status: 'completed',
+      winner: winnerId,
+      score: score,
+      completedAt: new Date()
+    });
+
+    // Recargar el match actualizado
+    match = await Match.findById(matchId)
+      .populate('tournament')
+      .populate('participant1')
+      .populate('participant2');
 
     // 3. Actualizar participant status
     await TournamentParticipant.findByIdAndUpdate(
@@ -134,18 +141,24 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
           .filter(m => m.winner)
           .map(m => m.winner);
 
+        console.log('Ronda completada. Ganadores:', winners.length);
+
         // Si hay más de 1 ganador, crear siguiente ronda
         if (winners.length > 1) {
           await generateNextRound(match.tournament._id, match.round + 1, winners);
         } else if (winners.length === 1) {
           // Solo queda un ganador, marcar como campeón y finalizar torneo
+          console.log('¡Torneo completado! Ganador:', winners[0]);
           await TournamentParticipant.findByIdAndUpdate(
             winners[0],
             { status: 'winner' }
           );
           await Tournament.findByIdAndUpdate(
             match.tournament._id,
-            { status: 'completed' }
+            { 
+              status: 'completed',
+              winner: winners[0]
+            }
           );
         }
       }

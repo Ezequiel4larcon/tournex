@@ -94,7 +94,14 @@ export const getTournamentById = async (tournamentId) => {
   const tournament = await Tournament
     .findById(tournamentId)
     .populate('createdBy', 'username email avatar')
-    .populate('owner', 'username email avatar');
+    .populate('owner', 'username email avatar')
+    .populate({
+      path: 'winner',
+      populate: {
+        path: 'player',
+        select: 'username email avatar'
+      }
+    });
 
   if (!tournament) {
     throw { status: 404, message: 'Tournament not found' };

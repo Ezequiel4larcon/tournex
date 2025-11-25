@@ -70,6 +70,10 @@ export default function TournamentDetail() {
       const data = response.data.data || response.data;
       setTournament(data);
       
+      console.log('Tournament data:', data);
+      console.log('Winner:', data.winner);
+      console.log('Status:', data.status);
+      
       // Verificar si el usuario está inscrito (solo jugadores individuales ahora)
       const enrolled = data.participants?.some((p) => p.player?._id === user?._id);
       setIsEnrolled(enrolled);
@@ -280,6 +284,40 @@ export default function TournamentDetail() {
             </div>
           </CardHeader>
         </Card>
+
+        {/* Winner Section - Only show when tournament is completed */}
+        {tournament.status === 'completed' && tournament.winner && (
+          <Card className="bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-orange-500/10 border-yellow-500/30 mb-8">
+            <CardHeader>
+              <div className="flex items-center justify-center gap-4">
+                <Trophy className="w-12 h-12 text-yellow-500" />
+                <div className="text-center">
+                  <CardTitle className="text-2xl mb-2">¡Campeón del Torneo!</CardTitle>
+                  <div className="flex items-center justify-center gap-3">
+                    {tournament.winner.player?.avatar && (
+                      <img 
+                        src={tournament.winner.player.avatar} 
+                        alt={tournament.winner.player.username}
+                        className="w-12 h-12 rounded-full border-2 border-yellow-500"
+                      />
+                    )}
+                    <div>
+                      <p className="text-3xl font-bold text-yellow-500">
+                        {tournament.winner.player?.username || 'Ganador'}
+                      </p>
+                      {tournament.winner.player?.email && (
+                        <p className="text-sm text-muted-foreground">
+                          {tournament.winner.player.email}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <Trophy className="w-12 h-12 text-yellow-500" />
+              </div>
+            </CardHeader>
+          </Card>
+        )}
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {/* Tournament Info */}

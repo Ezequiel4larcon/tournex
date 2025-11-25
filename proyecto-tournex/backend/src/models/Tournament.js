@@ -80,6 +80,11 @@ const tournamentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  winner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TournamentParticipant',
+    default: null
+  },
   image: {
     type: String,
     default: null

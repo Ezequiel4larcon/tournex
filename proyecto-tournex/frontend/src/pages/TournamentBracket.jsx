@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
@@ -9,6 +9,7 @@ import { useAuth } from '../hooks/useAuth';
 
 export default function TournamentBracket() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [tournament, setTournament] = useState(null);
   const [matches, setMatches] = useState([]);
@@ -65,9 +66,19 @@ export default function TournamentBracket() {
 
     try {
       await matchesAPI.report(selectedMatch._id, reportData);
-      alert('¡Resultado reportado exitosamente!');
       setShowReportModal(false);
-      loadTournamentData();
+      await loadTournamentData();
+      
+      // Si el torneo se completó, mostrar mensaje especial y navegar a detalles
+      const updatedTournament = await tournamentsAPI.getById(id);
+      const tournamentData = updatedTournament.data.data || updatedTournament.data;
+      
+      if (tournamentData.status === 'completed') {
+        alert('¡Torneo finalizado! El campeón ha sido coronado.');
+        navigate(`/tournaments/${id}`);
+      } else {
+        alert('¡Resultado reportado exitosamente!');
+      }
     } catch (err) {
       alert(`Error al reportar resultado: ${err.response?.data?.message || err.message}`);
     }
