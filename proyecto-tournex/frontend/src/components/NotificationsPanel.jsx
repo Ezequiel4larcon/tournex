@@ -5,7 +5,7 @@ import { X, Bell, Trophy, Users, AlertCircle, CheckCircle2, Clock } from 'lucide
 import { notificationsAPI } from '../api/api';
 import { getSocket } from '../utils/socket';
 
-export function NotificationsPanel({ isOpen, onClose }) {
+export function NotificationsPanel({ isOpen, onClose, onCountChange }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -38,7 +38,11 @@ export function NotificationsPanel({ isOpen, onClose }) {
       setNotifications(response.data.notifications || []);
       
       const countResponse = await notificationsAPI.getUnreadCount();
-      setUnreadCount(countResponse.data.unreadCount || 0);
+      const newCount = countResponse.data.unreadCount || 0;
+      setUnreadCount(newCount);
+      if (onCountChange) {
+        onCountChange(newCount);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {
@@ -71,10 +75,13 @@ export function NotificationsPanel({ isOpen, onClose }) {
   const markAsRead = async (notificationId) => {
     try {
       await notificationsAPI.markAsRead(notificationId);
-      setNotifications(
-        notifications.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n))
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      // Eliminar la notificación de la lista al marcarla como leída
+      setNotifications(notifications.filter((n) => n._id !== notificationId));
+      const newCount = Math.max(0, unreadCount - 1);
+      setUnreadCount(newCount);
+      if (onCountChange) {
+        onCountChange(newCount);
+      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
@@ -82,8 +89,18 @@ export function NotificationsPanel({ isOpen, onClose }) {
 
   const deleteNotification = async (notificationId) => {
     try {
+      const notification = notifications.find((n) => n._id === notificationId);
       await notificationsAPI.delete(notificationId);
       setNotifications(notifications.filter((n) => n._id !== notificationId));
+      
+      // Si la notificación no estaba leída, actualizar el contador
+      if (notification && !notification.isRead) {
+        const newCount = Math.max(0, unreadCount - 1);
+        setUnreadCount(newCount);
+        if (onCountChange) {
+          onCountChange(newCount);
+        }
+      }
     } catch (error) {
       console.error('Error deleting notification:', error);
     }
@@ -92,8 +109,12 @@ export function NotificationsPanel({ isOpen, onClose }) {
   const markAllAsRead = async () => {
     try {
       await notificationsAPI.markAllAsRead();
-      setNotifications(notifications.map((n) => ({ ...n, isRead: true })));
+      // Eliminar todas las notificaciones no leídas de la lista
+      setNotifications(notifications.filter((n) => n.isRead));
       setUnreadCount(0);
+      if (onCountChange) {
+        onCountChange(0);
+      }
     } catch (error) {
       console.error('Error marking all as read:', error);
     }

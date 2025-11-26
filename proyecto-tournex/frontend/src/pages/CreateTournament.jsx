@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
-import { Gamepad2, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 
 export default function CreateTournament() {
@@ -93,16 +92,6 @@ export default function CreateTournament() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link to="/" className="flex items-center gap-2">
-            <Gamepad2 className="w-8 h-8 text-primary" />
-            <h1 className="text-2xl font-bold text-foreground">TourneX</h1>
-          </Link>
-        </div>
-      </nav>
-
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Link
@@ -113,13 +102,12 @@ export default function CreateTournament() {
           Volver a torneos
         </Link>
 
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-2xl">Crear Nuevo Torneo</CardTitle>
-            <CardDescription>Configura los detalles de tu torneo</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-8">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-foreground mb-2">Crear Nuevo Torneo</h2>
+            <p className="text-muted-foreground">Configura los detalles de tu torneo</p>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
               {/* Nombre */}
               <div className="space-y-2">
                 <label htmlFor="name" className="text-sm font-medium text-foreground">
@@ -279,9 +267,8 @@ export default function CreateTournament() {
                 {isLoading ? 'Creando torneo...' : 'Crear Torneo'}
               </Button>
             </form>
-          </CardContent>
-        </Card>
-      </div>
-    </main>
-  );
-}
+          </div>
+        </div>
+      </main>
+    );
+  }

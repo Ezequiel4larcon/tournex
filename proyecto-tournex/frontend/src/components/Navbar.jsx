@@ -44,6 +44,18 @@ const Navbar = () => {
     navigate('/login');
   };
 
+  const handleNotificationCountChange = (newCount) => {
+    setUnreadCount(newCount);
+  };
+
+  const handleToggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      // Refrescar contador al abrir
+      fetchUnreadCount();
+    }
+  };
+
   return (
     <>
       <nav className="border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
@@ -71,7 +83,7 @@ const Navbar = () => {
                   <div className="flex items-center gap-3 sm:gap-4 border-l border-border pl-4 sm:pl-6">
                     {/* Bell Icon for Notifications */}
                     <button
-                      onClick={() => setShowNotifications(!showNotifications)}
+                      onClick={handleToggleNotifications}
                       className="relative text-muted-foreground hover:text-foreground transition"
                     >
                       <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -124,7 +136,8 @@ const Navbar = () => {
       {/* Notifications Panel */}
       <NotificationsPanel 
         isOpen={showNotifications} 
-        onClose={() => setShowNotifications(false)} 
+        onClose={() => setShowNotifications(false)}
+        onCountChange={handleNotificationCountChange}
       />
     </>
   );

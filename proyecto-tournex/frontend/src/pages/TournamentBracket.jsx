@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { ArrowLeft, Trophy, Flame, Clock, Edit } from 'lucide-react';
 import { tournamentsAPI, matchesAPI } from '../api/api';
@@ -138,12 +137,11 @@ export default function TournamentBracket() {
     const score2 = match.score?.participant2Score || 0;
 
     return (
-      <Card
-        className={`bg-card border-border hover:border-primary/50 transition-all ${
+      <div
+        className={`bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all duration-300 ${
           match.status === 'in_progress' ? 'border-destructive/50 shadow-lg shadow-destructive/20' : ''
         }`}
       >
-        <CardContent className="pt-6">
           <div className="space-y-3">
             <div className="flex justify-between items-start">
               <div className="flex-1">
@@ -195,8 +193,7 @@ export default function TournamentBracket() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </div>
     );
   };
 
@@ -240,12 +237,10 @@ export default function TournamentBracket() {
 
   if (error || !tournament) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="bg-destructive/10 border-destructive/30">
-          <CardContent className="pt-6">
-            <p className="text-destructive">{error || 'Torneo no encontrado'}</p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="bg-destructive/10 backdrop-blur-sm border border-destructive/30 rounded-xl p-6 max-w-md">
+          <p className="text-destructive text-center">{error || 'Torneo no encontrado'}</p>
+        </div>
       </div>
     );
   }
@@ -269,99 +264,82 @@ export default function TournamentBracket() {
         </Link>
 
         {/* Tournament Header */}
-        <Card className={`bg-gradient-to-r ${tournament.status === 'in_progress' ? 'from-destructive/10 to-accent/10 border-destructive/30' : 'from-primary/10 to-accent/10 border-primary/30'} mb-8`}>
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                {tournament.status === 'in_progress' && (
-                  <div className="flex items-center gap-3 mb-2">
+        <div className={`bg-gradient-to-r ${tournament.status === 'in_progress' ? 'from-destructive/10 to-accent/10 border-destructive/30' : 'from-primary/10 to-accent/10 border-primary/30'} backdrop-blur-sm border rounded-xl p-8 mb-8`}>
+          <div className="flex justify-between items-start">
+            <div>
+              {tournament.status === 'in_progress' && (
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center">
                     <Flame className="w-6 h-6 text-destructive" />
-                    <span className="px-3 py-1 rounded-full bg-destructive/20 text-destructive font-semibold text-sm">
-                      EN VIVO AHORA
-                    </span>
                   </div>
-                )}
-                <CardTitle className="text-3xl flex items-center gap-3 mt-4">
+                  <span className="px-4 py-2 rounded-full bg-destructive/20 text-destructive font-semibold">
+                    EN VIVO AHORA
+                  </span>
+                </div>
+              )}
+              <h1 className="text-4xl font-bold flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center">
                   <Trophy className="w-8 h-8 text-primary" />
-                  {tournament.name}
-                </CardTitle>
-                <CardDescription className="text-base mt-2">
-                  {tournament.game} - Bracket del Torneo
-                </CardDescription>
-              </div>
+                </div>
+                {tournament.name}
+              </h1>
+              <p className="text-lg text-muted-foreground">
+                {tournament.game} - Bracket del Torneo
+              </p>
             </div>
-          </CardHeader>
-        </Card>
+          </div>
+        </div>
 
         {/* Tournament Stats */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">Total Matches</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-primary">{matches.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">Matches en Vivo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-destructive">{liveMatches.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground">Matches Completados</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold text-accent">{completedMatches.length}</p>
-            </CardContent>
-          </Card>
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all duration-300">
+            <p className="text-sm font-medium text-muted-foreground mb-2">Total Matches</p>
+            <p className="text-4xl font-bold text-primary">{matches.length}</p>
+          </div>
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-destructive transition-all duration-300">
+            <p className="text-sm font-medium text-muted-foreground mb-2">Matches en Vivo</p>
+            <p className="text-4xl font-bold text-destructive">{liveMatches.length}</p>
+          </div>
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-accent transition-all duration-300">
+            <p className="text-sm font-medium text-muted-foreground mb-2">Matches Completados</p>
+            <p className="text-4xl font-bold text-accent">{completedMatches.length}</p>
+          </div>
         </div>
 
         {/* Bracket Display */}
         <div className="space-y-8">
           {rounds.map((round) => (
-            <Card key={round} className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  {getRoundName(Number(round), rounds.length)} ({matchesByRound[round].length} matches)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {matchesByRound[round].map((match) => (
-                    <MatchCard key={match._id} match={match} />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <div key={round} className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-8 hover:border-primary transition-all duration-300">
+              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
+                {getRoundName(Number(round), rounds.length)} ({matchesByRound[round].length} matches)
+              </h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {matchesByRound[round].map((match) => (
+                  <MatchCard key={match._id} match={match} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
 
         {matches.length === 0 && (
-          <Card className="bg-card border-border">
-            <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground py-8">
-                Aún no se han generado los matches del torneo
-              </p>
-            </CardContent>
-          </Card>
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-8">
+            <p className="text-center text-muted-foreground py-8">
+              Aún no se han generado los matches del torneo
+            </p>
+          </div>
         )}
 
         {/* Live Match Detail */}
         {liveMatch && (
           <div className="mt-8">
-            <Card className="bg-gradient-to-b from-destructive/10 to-card border-destructive/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Flame className="w-5 h-5 text-destructive animate-pulse" />
-                  Match en Vivo Ahora
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div className="bg-gradient-to-b from-destructive/10 to-card/50 backdrop-blur-sm border border-destructive/30 rounded-xl p-8">
+              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center">
+                  <Flame className="w-6 h-6 text-destructive animate-pulse" />
+                </div>
+                Match en Vivo Ahora
+              </h2>
                 <div className="grid md:grid-cols-3 gap-8 items-center">
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto mb-4 bg-primary/20 rounded-full flex items-center justify-center">
@@ -394,8 +372,7 @@ export default function TournamentBracket() {
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+            </div>
           </div>
         )}
       </div>
@@ -404,18 +381,18 @@ export default function TournamentBracket() {
       {showReportModal && selectedMatch && (
         <>
           <div 
-            className="fixed inset-0 bg-black/50 z-40"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
             onClick={() => setShowReportModal(false)}
           />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <Card className="bg-card border-border max-w-md w-full">
-              <CardHeader>
-                <CardTitle>Reportar Resultado del Match</CardTitle>
-                <CardDescription>
+            <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl max-w-md w-full p-6">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-foreground mb-2">Reportar Resultado del Match</h3>
+                <p className="text-muted-foreground">
                   Ronda {selectedMatch.round} - Match #{selectedMatch.matchNumber}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </p>
+              </div>
+              <div className="space-y-4">
                 {/* Seleccionar ganador */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">Ganador</label>
@@ -491,8 +468,8 @@ export default function TournamentBracket() {
                     Reportar Resultado
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </>
       )}

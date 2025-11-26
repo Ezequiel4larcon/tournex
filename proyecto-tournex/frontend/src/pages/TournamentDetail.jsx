@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { ArrowLeft, Users, Trophy, Calendar, Zap, CheckCircle2, Settings, Play, Grid3x3, Edit, UserX } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
@@ -248,11 +247,14 @@ export default function TournamentDetail() {
 
   const getStatusBadge = (status) => {
     const statusMap = {
-      active: { class: 'bg-accent/20 text-accent', text: 'En Progreso' },
-      upcoming: { class: 'bg-secondary/20 text-secondary', text: 'Próximamente' },
+      pending: { class: 'bg-muted/20 text-muted-foreground', text: 'Pendiente' },
+      registration_open: { class: 'bg-accent/20 text-accent', text: 'Inscripciones Abiertas' },
+      registration_closed: { class: 'bg-secondary/20 text-secondary', text: 'Próximamente' },
+      in_progress: { class: 'bg-primary/20 text-primary', text: 'En Progreso' },
       completed: { class: 'bg-muted text-muted-foreground', text: 'Finalizado' },
+      cancelled: { class: 'bg-destructive/20 text-destructive', text: 'Cancelado' },
     };
-    return statusMap[status] || statusMap.upcoming;
+    return statusMap[status] || { class: 'bg-muted/20 text-muted-foreground', text: status };
   };
 
   const getFormatLabel = (format) => {
@@ -275,11 +277,9 @@ export default function TournamentDetail() {
   if (error || !tournament) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="bg-destructive/10 border-destructive/30">
-          <CardContent className="pt-6">
-            <p className="text-destructive">{error || 'Torneo no encontrado'}</p>
-          </CardContent>
-        </Card>
+        <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-6">
+          <p className="text-destructive">{error || 'Torneo no encontrado'}</p>
+        </div>
       </div>
     );
   }
@@ -309,145 +309,142 @@ export default function TournamentDetail() {
         </Link>
 
         {/* Tournament Header */}
-        <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/30 mb-8">
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-3xl flex items-center gap-3">
-                  <Trophy className="w-8 h-8 text-primary" />
-                  {tournament.name}
-                </CardTitle>
-                <CardDescription className="text-base mt-2">
-                  {tournament.description}
-                </CardDescription>
+        <div className="bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/30 rounded-2xl p-8 mb-8 hover:border-primary transition-all duration-300">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Trophy className="w-6 h-6 text-primary" />
+                </div>
+                <h1 className="text-4xl font-bold text-foreground">{tournament.name}</h1>
               </div>
-              <span className={`px-4 py-2 rounded-full font-medium whitespace-nowrap ${statusBadge.class}`}>
-                {statusBadge.text}
-              </span>
+              <p className="text-lg text-muted-foreground">{tournament.description}</p>
             </div>
-          </CardHeader>
-        </Card>
+            <span className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap ${statusBadge.class}`}>
+              {statusBadge.text}
+            </span>
+          </div>
+        </div>
 
         {/* Winner Section - Only show when tournament is completed */}
         {tournament.status === 'completed' && tournament.winner && (
-          <Card className="bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-orange-500/10 border-yellow-500/30 mb-8">
-            <CardHeader>
-              <div className="flex items-center justify-center gap-4">
-                <Trophy className="w-12 h-12 text-yellow-500" />
-                <div className="text-center">
-                  <CardTitle className="text-2xl mb-2">¡Campeón del Torneo!</CardTitle>
-                  <div className="flex items-center justify-center gap-3">
-                    {tournament.winner.player?.avatar && (
-                      <img 
-                        src={tournament.winner.player.avatar} 
-                        alt={tournament.winner.player.username}
-                        className="w-12 h-12 rounded-full border-2 border-yellow-500"
-                      />
-                    )}
-                    <div>
-                      <p className="text-3xl font-bold text-yellow-500">
-                        {tournament.winner.player?.username || 'Ganador'}
+          <div className="bg-gradient-to-r from-yellow-500/10 via-amber-500/10 to-orange-500/10 border border-yellow-500/30 rounded-2xl p-8 mb-8">
+            <div className="flex items-center justify-center gap-6">
+              <Trophy className="w-16 h-16 text-yellow-500" />
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-foreground mb-3">¡Campeón del Torneo!</h2>
+                <div className="flex items-center justify-center gap-4">
+                  {tournament.winner.player?.avatar && (
+                    <img 
+                      src={tournament.winner.player.avatar} 
+                      alt={tournament.winner.player.username}
+                      className="w-12 h-12 rounded-full border-2 border-yellow-500"
+                    />
+                  )}
+                  <div>
+                    <p className="text-3xl font-bold text-yellow-500">
+                      {tournament.winner.player?.username || 'Ganador'}
+                    </p>
+                    {tournament.winner.player?.email && (
+                      <p className="text-sm text-muted-foreground">
+                        {tournament.winner.player.email}
                       </p>
-                      {tournament.winner.player?.email && (
-                        <p className="text-sm text-muted-foreground">
-                          {tournament.winner.player.email}
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
-                <Trophy className="w-12 h-12 text-yellow-500" />
               </div>
-            </CardHeader>
-          </Card>
+              <Trophy className="w-16 h-16 text-yellow-500" />
+            </div>
+          </div>
         )}
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           {/* Tournament Info */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-lg">Información</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all duration-300">
+            <h3 className="text-lg font-semibold text-foreground mb-6">Información</h3>
+            <div className="space-y-4">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Juego</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Juego</p>
                 <p className="text-sm font-medium text-foreground">{tournament.game}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Formato</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Formato</p>
                 <p className="text-sm font-medium text-foreground">
                   {getFormatLabel(tournament.format)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Organizador</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Organizador</p>
                 <p className="text-sm font-medium text-foreground">
                   {tournament.owner?.username || tournament.createdBy?.username || 'Usuario'}
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Dates */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Fechas
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {tournament.status === 'registration_open' ? (
-                // Si las inscripciones están abiertas, solo mostrar fecha de cierre
-                <div>
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Inscripciones Cierran</p>
-                  <p className="text-sm font-medium text-accent">
-                    {tournament.registrationEndDate 
-                      ? new Date(tournament.registrationEndDate).toLocaleString('es-ES', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })
-                      : 'No definido'}
-                  </p>
-                </div>
-              ) : (
-                // Para otros estados, mostrar todas las fechas
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-accent transition-all duration-300">
+            <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Fechas
+            </h3>
+            <div className="space-y-4">
+              {/* Solo mostrar fechas de inscripciones si el torneo NO está en progreso ni completado */}
+              {tournament.status !== 'in_progress' && tournament.status !== 'completed' && (
                 <>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Inscripciones Abren</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {tournament.registrationStartDate 
-                        ? new Date(tournament.registrationStartDate).toLocaleString('es-ES', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : 'No definido'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Inscripciones Cierran</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {tournament.registrationEndDate 
-                        ? new Date(tournament.registrationEndDate).toLocaleString('es-ES', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })
-                        : 'No definido'}
-                    </p>
-                  </div>
+                  {tournament.status === 'registration_open' ? (
+                    // Si las inscripciones están abiertas, solo mostrar fecha de cierre
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Inscripciones Cierran</p>
+                      <p className="text-sm font-medium text-accent">
+                        {tournament.registrationEndDate 
+                          ? new Date(tournament.registrationEndDate).toLocaleString('es-ES', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })
+                          : 'No definido'}
+                      </p>
+                    </div>
+                  ) : (
+                    // Para otros estados (pendiente, registration_closed), mostrar fechas de inscripciones
+                    <>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Inscripciones Abren</p>
+                        <p className="text-sm font-medium text-foreground">
+                          {tournament.registrationStartDate 
+                            ? new Date(tournament.registrationStartDate).toLocaleString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : 'No definido'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Inscripciones Cierran</p>
+                        <p className="text-sm font-medium text-foreground">
+                          {tournament.registrationEndDate 
+                            ? new Date(tournament.registrationEndDate).toLocaleString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })
+                            : 'No definido'}
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Inicio del Torneo</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Inicio del Torneo</p>
                 <p className="text-sm font-medium text-foreground">
                   {tournament.startDate 
                     ? new Date(tournament.startDate).toLocaleString('es-ES', {
@@ -461,7 +458,7 @@ export default function TournamentDetail() {
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Fin del Torneo</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Fin del Torneo</p>
                 <p className="text-sm font-medium text-foreground">
                   {tournament.endDate 
                     ? new Date(tournament.endDate).toLocaleString('es-ES', {
@@ -474,42 +471,40 @@ export default function TournamentDetail() {
                     : 'No definido'}
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Participants */}
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Participantes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all duration-300">
+            <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Participantes
+            </h3>
+            <div className="space-y-4">
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Jugadores</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Jugadores</p>
                 <p className="text-sm font-medium text-foreground">
                   {currentPlayers} / {tournament.maxParticipants}
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Moderator Controls */}
         {canModerate && (
-          <Card className="bg-primary/10 border-primary/30 mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
+          <div className="bg-primary/5 backdrop-blur-sm border border-primary/30 rounded-xl p-8 mb-8 hover:border-primary transition-all duration-300">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-foreground flex items-center gap-3 mb-2">
+                <Settings className="w-6 h-6" />
                 Panel de Moderación
                 {isOwner && <span className="text-xs bg-primary/20 px-2 py-1 rounded">Organizador</span>}
-              </CardTitle>
-              <CardDescription>
+              </h3>
+              <p className="text-muted-foreground">
                 Controla y administra tu torneo
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
+            </div>
+            <div>
               <div className="grid md:grid-cols-3 gap-4">
                 {/* Botón para editar fechas del torneo - siempre disponible si no está completado */}
                 {tournament.status !== 'completed' && tournament.status !== 'cancelled' && (
@@ -567,27 +562,29 @@ export default function TournamentDetail() {
                   <strong>Participantes inscritos:</strong> {currentPlayers} / {tournament.maxParticipants}
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Enrollment Section */}
         {!isOwner && tournament.status === 'registration_open' && (
-          <Card className="bg-card border-border mb-8">
-            <CardHeader>
-              <CardTitle>Inscripción</CardTitle>
-              <CardDescription>
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-8 mb-8 hover:border-accent transition-all duration-300">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-foreground mb-2">Inscripción</h3>
+              <p className="text-muted-foreground">
                 {currentPlayers} / {tournament.maxParticipants} jugadores inscritos
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
+            </div>
+            <div>
               {isEnrolled ? (
-                <div className="flex items-center gap-2 text-accent">
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span className="font-medium">Ya estás inscrito en este torneo</span>
+                <div className="p-6 bg-accent/10 rounded-lg border border-accent/30">
+                  <div className="flex items-center gap-3 text-accent">
+                    <CheckCircle2 className="w-6 h-6" />
+                    <span className="font-medium text-lg">Ya estás inscrito en este torneo</span>
+                  </div>
                 </div>
               ) : isFull ? (
-                <div className="p-4 bg-muted rounded-lg">
+                <div className="p-6 bg-muted/50 rounded-lg border border-border">
                   <p className="text-muted-foreground">
                     El torneo ha alcanzado el límite de participantes
                   </p>
@@ -595,63 +592,61 @@ export default function TournamentDetail() {
               ) : (
                 <Button
                   onClick={handleEnroll}
-                  className="bg-primary hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90 px-8 py-6 text-lg transition-colors"
                   disabled={enrolling}
                 >
                   {enrolling ? 'Inscribiendo...' : 'Inscribirse en el Torneo'}
                 </Button>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Tournament not open for registration */}
         {!isOwner && tournament.status !== 'registration_open' && !isEnrolled && (
-          <Card className="bg-muted/30 border-border mb-8">
-            <CardContent className="pt-6">
-              <p className="text-muted-foreground text-center">
-                {tournament.status === 'pending' && 'Las inscripciones aún no han sido abiertas'}
-                {tournament.status === 'in_progress' && 'El torneo ya está en progreso'}
-                {tournament.status === 'completed' && 'Este torneo ha finalizado'}
-                {tournament.status === 'cancelled' && 'Este torneo ha sido cancelado'}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="bg-muted/20 backdrop-blur-sm border border-border rounded-xl p-8 mb-8">
+            <p className="text-muted-foreground text-center text-lg">
+              {tournament.status === 'pending' && 'Las inscripciones aún no han sido abiertas'}
+              {tournament.status === 'in_progress' && 'El torneo ya está en progreso'}
+              {tournament.status === 'completed' && 'Este torneo ha finalizado'}
+              {tournament.status === 'cancelled' && 'Este torneo ha sido cancelado'}
+            </p>
+          </div>
         )}
 
         {/* View Bracket - Available for all users when matches exist */}
         {hasMatches && (
-          <Card className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/30 mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Grid3x3 className="w-5 h-5" />
-                Bracket del Torneo
-              </CardTitle>
-              <CardDescription>
+          <div className="bg-gradient-to-r from-accent/10 to-primary/10 backdrop-blur-sm border border-accent/30 rounded-2xl p-8 mb-8 hover:border-accent transition-all duration-300">
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <Grid3x3 className="w-5 h-5 text-accent" />
+                </div>
+                <h3 className="text-2xl font-bold text-foreground">Bracket del Torneo</h3>
+              </div>
+              <p className="text-muted-foreground">
                 {tournament.status === 'in_progress' && 'El torneo está en progreso. Consulta las partidas y resultados'}
                 {tournament.status === 'completed' && 'El torneo ha finalizado. Consulta los resultados finales'}
                 {tournament.status === 'registration_closed' && 'El bracket ha sido generado. El torneo comenzará pronto'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                onClick={() => navigate(`/tournaments/${id}/bracket`)}
-                className="bg-accent hover:bg-accent/90 flex items-center gap-2 w-full sm:w-auto"
-              >
-                <Grid3x3 className="w-4 h-4" />
-                Ver Bracket y Partidas
-              </Button>
-            </CardContent>
-          </Card>
+              </p>
+            </div>
+            <Button
+              onClick={() => navigate(`/tournaments/${id}/bracket`)}
+              className="bg-accent hover:bg-accent/90 flex items-center gap-2 w-full sm:w-auto px-6 py-3"
+            >
+              <Grid3x3 className="w-4 h-4" />
+              Ver Bracket y Partidas
+            </Button>
+          </div>
         )}
 
         {/* Participants List */}
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle>Participantes Inscritos</CardTitle>
-            <CardDescription>{participants.length} participantes confirmados</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-8 hover:border-primary transition-all duration-300">
+          <div className="mb-6">
+            <h3 className="text-2xl font-bold text-foreground mb-2">Participantes Inscritos</h3>
+            <p className="text-muted-foreground">{participants.length} participantes confirmados</p>
+          </div>
+          <div>
             <div className="space-y-3">
               {participants
                 .filter(participant => participant.status !== 'banned') // Filtrar participantes baneados
@@ -701,21 +696,21 @@ export default function TournamentDetail() {
                 Aún no hay participantes inscritos
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Modal para Abrir Inscripciones */}
       {showRegistrationModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-card border-border max-w-md w-full">
-            <CardHeader>
-              <CardTitle>Abrir Inscripciones</CardTitle>
-              <CardDescription>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl max-w-md w-full p-6">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-foreground mb-2">Abrir Inscripciones</h3>
+              <p className="text-muted-foreground">
                 Configura las fechas de inicio y fin de inscripciones
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Fecha de Inicio de Inscripciones
@@ -759,22 +754,22 @@ export default function TournamentDetail() {
                   Cancelar
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Modal para Editar Fechas del Torneo */}
       {showEditDatesModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-card border-border max-w-md w-full">
-            <CardHeader>
-              <CardTitle>Editar Fechas del Torneo</CardTitle>
-              <CardDescription>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl max-w-md w-full p-6">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-foreground mb-2">Editar Fechas del Torneo</h3>
+              <p className="text-muted-foreground">
                 Modifica las fechas de inicio y fin del torneo
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Fecha de Inicio del Torneo
@@ -818,22 +813,22 @@ export default function TournamentDetail() {
                   Cancelar
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Modal para Editar Fechas de Inscripciones */}
       {showEditRegistrationDatesModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-card border-border max-w-md w-full">
-            <CardHeader>
-              <CardTitle>Editar Fechas de Inscripciones</CardTitle>
-              <CardDescription>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl max-w-md w-full p-6">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-foreground mb-2">Editar Fechas de Inscripciones</h3>
+              <p className="text-muted-foreground">
                 Modifica las fechas de apertura y cierre de inscripciones
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Fecha de Inicio de Inscripciones
@@ -877,25 +872,25 @@ export default function TournamentDetail() {
                   Cancelar
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Modal para Confirmar Baneo de Participante */}
       {showBanModal && participantToBan && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-card border-border max-w-md w-full">
-            <CardHeader>
-              <CardTitle className="text-destructive flex items-center gap-2">
-                <UserX className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card/95 backdrop-blur-sm border border-destructive/50 rounded-xl max-w-md w-full p-6">
+            <div className="mb-6">
+              <h3 className="text-2xl font-bold text-destructive flex items-center gap-2 mb-2">
+                <UserX className="w-6 h-6" />
                 Banear Participante
-              </CardTitle>
-              <CardDescription>
+              </h3>
+              <p className="text-muted-foreground">
                 Esta acción removerá al participante del torneo
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
                 <p className="text-sm text-foreground">
                   ¿Estás seguro que deseas banear a{' '}
@@ -928,8 +923,8 @@ export default function TournamentDetail() {
                   Cancelar
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       )}
     </main>
