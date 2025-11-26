@@ -24,7 +24,7 @@ export default function CreateTournament() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const games = ['Valorant', 'CS2', 'League of Legends', 'Dota 2', 'Overwatch 2', 'Street Fighter 6'];
+  const games = ['CS2', 'VALORANT', 'OVERWATCH 2', 'FIFA'];
   const participantOptions = [2, 4, 8, 16, 32];
 
   const handleChange = (e) => {

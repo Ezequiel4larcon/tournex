@@ -111,14 +111,20 @@ export default function TournamentDetail() {
   };
 
   const handleOpenRegistrationModal = () => {
+    // Función helper para formatear fecha a datetime-local
+    const formatDateTimeLocal = (date) => {
+      if (!date) return '';
+      const d = new Date(date);
+      // Ajustar a zona horaria local
+      const offset = d.getTimezoneOffset() * 60000;
+      const localDate = new Date(d.getTime() - offset);
+      return localDate.toISOString().slice(0, 16);
+    };
+
     // Prellenar con las fechas actuales del torneo
     setRegistrationDates({
-      registrationStartDate: tournament.registrationStartDate 
-        ? new Date(tournament.registrationStartDate).toISOString().slice(0, 16) 
-        : new Date().toISOString().slice(0, 16),
-      registrationEndDate: tournament.registrationEndDate 
-        ? new Date(tournament.registrationEndDate).toISOString().slice(0, 16)
-        : new Date(tournament.startDate).toISOString().slice(0, 16)
+      registrationStartDate: formatDateTimeLocal(tournament.registrationStartDate) || new Date().toISOString().slice(0, 16),
+      registrationEndDate: formatDateTimeLocal(tournament.registrationEndDate) || formatDateTimeLocal(tournament.startDate)
     });
     setShowRegistrationModal(true);
   };
@@ -135,13 +141,19 @@ export default function TournamentDetail() {
   };
 
   const handleOpenEditDatesModal = () => {
+    // Función helper para formatear fecha a datetime-local
+    const formatDateTimeLocal = (date) => {
+      if (!date) return '';
+      const d = new Date(date);
+      // Ajustar a zona horaria local
+      const offset = d.getTimezoneOffset() * 60000;
+      const localDate = new Date(d.getTime() - offset);
+      return localDate.toISOString().slice(0, 16);
+    };
+
     setTournamentDates({
-      startDate: tournament.startDate 
-        ? new Date(tournament.startDate).toISOString().slice(0, 16) 
-        : new Date().toISOString().slice(0, 16),
-      endDate: tournament.endDate 
-        ? new Date(tournament.endDate).toISOString().slice(0, 16)
-        : new Date().toISOString().slice(0, 16)
+      startDate: formatDateTimeLocal(tournament.startDate) || new Date().toISOString().slice(0, 16),
+      endDate: formatDateTimeLocal(tournament.endDate) || new Date().toISOString().slice(0, 16)
     });
     setShowEditDatesModal(true);
   };
@@ -158,13 +170,19 @@ export default function TournamentDetail() {
   };
 
   const handleOpenEditRegistrationDatesModal = () => {
+    // Función helper para formatear fecha a datetime-local
+    const formatDateTimeLocal = (date) => {
+      if (!date) return '';
+      const d = new Date(date);
+      // Ajustar a zona horaria local
+      const offset = d.getTimezoneOffset() * 60000;
+      const localDate = new Date(d.getTime() - offset);
+      return localDate.toISOString().slice(0, 16);
+    };
+
     setEditRegistrationDates({
-      registrationStartDate: tournament.registrationStartDate 
-        ? new Date(tournament.registrationStartDate).toISOString().slice(0, 16) 
-        : new Date().toISOString().slice(0, 16),
-      registrationEndDate: tournament.registrationEndDate 
-        ? new Date(tournament.registrationEndDate).toISOString().slice(0, 16)
-        : new Date(tournament.startDate).toISOString().slice(0, 16)
+      registrationStartDate: formatDateTimeLocal(tournament.registrationStartDate) || new Date().toISOString().slice(0, 16),
+      registrationEndDate: formatDateTimeLocal(tournament.registrationEndDate) || new Date().toISOString().slice(0, 16)
     });
     setShowEditRegistrationDatesModal(true);
   };
@@ -379,16 +397,81 @@ export default function TournamentDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {tournament.status === 'registration_open' ? (
+                // Si las inscripciones están abiertas, solo mostrar fecha de cierre
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Inscripciones Cierran</p>
+                  <p className="text-sm font-medium text-accent">
+                    {tournament.registrationEndDate 
+                      ? new Date(tournament.registrationEndDate).toLocaleString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : 'No definido'}
+                  </p>
+                </div>
+              ) : (
+                // Para otros estados, mostrar todas las fechas
+                <>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Inscripciones Abren</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {tournament.registrationStartDate 
+                        ? new Date(tournament.registrationStartDate).toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : 'No definido'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Inscripciones Cierran</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {tournament.registrationEndDate 
+                        ? new Date(tournament.registrationEndDate).toLocaleString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : 'No definido'}
+                    </p>
+                  </div>
+                </>
+              )}
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Inicio</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Inicio del Torneo</p>
                 <p className="text-sm font-medium text-foreground">
-                  {new Date(tournament.startDate).toLocaleDateString()}
+                  {tournament.startDate 
+                    ? new Date(tournament.startDate).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'No definido'}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Fin</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Fin del Torneo</p>
                 <p className="text-sm font-medium text-foreground">
-                  {new Date(tournament.endDate).toLocaleDateString()}
+                  {tournament.endDate 
+                    ? new Date(tournament.endDate).toLocaleString('es-ES', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'No definido'}
                 </p>
               </div>
             </CardContent>

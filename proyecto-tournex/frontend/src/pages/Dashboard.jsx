@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Gamepad2, Trophy, Users, Plus, LogOut, Settings, Shield, Grid3x3 } from 'lucide-react';
-import { tournamentsAPI } from '../api/api';
+import { Gamepad2, Trophy, Users, Plus, LogOut, Settings, Shield, Grid3x3, Swords } from 'lucide-react';
+import { tournamentsAPI, matchesAPI } from '../api/api';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -12,15 +12,25 @@ export default function Dashboard() {
   const [tournaments, setTournaments] = useState([]);
   const [myTournaments, setMyTournaments] = useState([]);
   const [moderatedTournaments, setModeratedTournaments] = useState([]);
+  const [myMatches, setMyMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeTab, setActiveTab] = useState('playing'); // 'playing' or 'moderating'
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    // Solo cargar datos cuando el usuario esté disponible
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user]); // Agregar user como dependencia
 
   const loadDashboardData = async () => {
+    // Verificar que el usuario esté cargado
+    if (!user?._id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await tournamentsAPI.getAll();
@@ -32,7 +42,7 @@ export default function Dashboard() {
       
       setTournaments(allTournaments.slice(0, 3)); // Mostrar últimos 3 torneos
       
-      const userId = user?._id;
+      const userId = user._id;
       
       // Filtrar torneos donde el usuario es owner/moderador
       const moderated = allTournaments.filter(t => {
@@ -57,10 +67,53 @@ export default function Dashboard() {
       });
       console.log('Torneos participando:', participating);
       setMyTournaments(participating);
+
+      // Cargar partidos del usuario
+      await loadMyMatches(participating);
     } catch (err) {
       console.error('Error loading dashboard:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMyMatches = async (participatingTournaments) => {
+    try {
+      const userId = user?._id;
+      if (!userId) return;
+
+      // Obtener todos los partidos de los torneos donde participa
+      const allMatches = [];
+      for (const tournament of participatingTournaments) {
+        try {
+          const response = await tournamentsAPI.getMatches(tournament._id);
+          const matches = response.data.data || response.data || [];
+          
+          // Filtrar partidos donde el usuario es participante
+          const userMatches = matches.filter(match => {
+            const p1Id = match.participant1?.player?._id || match.participant1?.player;
+            const p2Id = match.participant2?.player?._id || match.participant2?.player;
+            return (p1Id === userId || p2Id === userId) && match.status !== 'completed';
+          });
+
+          // Agregar información del torneo a cada match
+          userMatches.forEach(match => {
+            match.tournamentInfo = {
+              _id: tournament._id,
+              name: tournament.name,
+              game: tournament.game
+            };
+          });
+
+          allMatches.push(...userMatches);
+        } catch (err) {
+          console.error(`Error loading matches for tournament ${tournament._id}:`, err);
+        }
+      }
+
+      setMyMatches(allMatches);
+    } catch (err) {
+      console.error('Error loading matches:', err);
     }
   };
 
@@ -157,11 +210,70 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-muted-foreground">0</p>
-              <p className="text-sm text-muted-foreground">próximas</p>
+              <p className="text-3xl font-bold text-muted-foreground">{myMatches.length}</p>
+              <p className="text-sm text-muted-foreground">pendientes</p>
             </CardContent>
           </Card>
         </div>
+
+        {/* My Matches Section */}
+        {myMatches.length > 0 && (
+          <div className="mb-12">
+            <h3 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
+              <Swords className="w-6 h-6 text-accent" />
+              Mis Partidos Pendientes
+            </h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {myMatches.map((match) => {
+                const isParticipant1 = (match.participant1?.player?._id || match.participant1?.player) === user?._id;
+                const opponent = isParticipant1 ? match.participant2 : match.participant1;
+                const opponentName = opponent?.player?.username || opponent?.team?.name || 'TBD';
+
+                return (
+                  <Card key={match._id} className="bg-card border-border hover:border-accent/50 transition-colors">
+                    <CardHeader>
+                      <CardTitle className="text-sm text-muted-foreground">{match.tournamentInfo?.name}</CardTitle>
+                      <CardDescription className="text-xs">Ronda {match.round} - Match #{match.matchNumber}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-primary/30 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-bold text-primary">{user?.username?.charAt(0).toUpperCase()}</span>
+                            </div>
+                            <span className="text-sm font-medium">Tú</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">vs</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{opponentName}</span>
+                            <div className="w-8 h-8 bg-accent/30 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-bold text-accent">{opponentName.charAt(0).toUpperCase()}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            match.status === 'pending' 
+                              ? 'bg-yellow-500/20 text-yellow-500' 
+                              : 'bg-accent/20 text-accent'
+                          }`}>
+                            {match.status === 'pending' ? 'Pendiente' : 'En Progreso'}
+                          </span>
+                          <Link to={`/tournaments/${match.tournamentInfo?._id}/bracket`}>
+                            <Button variant="outline" className="text-xs h-8">
+                              Ver Bracket
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Tournaments Section with Tabs */}
         <div className="mb-12">
