@@ -101,16 +101,16 @@ export default function Tournaments() {
   return (
     <main className="min-h-screen bg-background">
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         {/* Header */}
         <div className="mb-12">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div>
-              <h2 className="text-3xl font-bold text-foreground mb-2">Todos los Torneos</h2>
-              <p className="text-muted-foreground">Encuentra y únete a torneos emocionantes</p>
+              <h2 className="text-4xl font-bold text-foreground mb-3">Todos los Torneos</h2>
+              <p className="text-lg text-muted-foreground">Encuentra y únete a torneos emocionantes</p>
             </div>
             <Link to="/tournaments/create">
-              <Button className="bg-primary hover:bg-primary/90 flex items-center gap-2">
+              <Button className="bg-primary hover:bg-primary/90 flex items-center gap-2 transition-colors whitespace-nowrap">
                 <Plus className="w-4 h-4" />
                 Crear Torneo
               </Button>
@@ -119,74 +119,72 @@ export default function Tournaments() {
 
           {/* Search Bar */}
           <div className="relative">
-            <Search className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               placeholder="Buscar torneos por nombre o juego..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-input border-border"
+              className="pl-12 py-6 bg-card/50 border-border rounded-xl hover:border-primary transition-colors"
             />
           </div>
         </div>
 
         {/* Error */}
         {error && (
-          <Card className="bg-destructive/10 border-destructive/30 mb-8 p-6">
+          <div className="bg-destructive/10 border border-destructive/30 rounded-xl mb-8 p-6">
             <p className="text-destructive">{error}</p>
-          </Card>
+          </div>
         )}
 
         {/* Tournaments Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-1 gap-4">
+        <div className="space-y-4">
           {filteredTournaments.map((tournament) => {
             const currentPlayers = tournament.currentParticipants || 0;
 
             return (
-              <Card
+              <div
                 key={tournament._id}
-                className="bg-card border-border hover:border-primary/30 transition-colors"
+                className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all duration-300"
               >
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-foreground">{tournament.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {tournament.owner?.username || tournament.createdBy?.username || 'Organizador'}
-                      </p>
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-start gap-3 mb-2">
+                      <h3 className="text-2xl font-bold text-foreground">{tournament.name}</h3>
+                      <span
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${getStatusClass(tournament.status)}`}
+                      >
+                        {getStatusLabel(tournament.status)}
+                      </span>
                     </div>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-4 ${getStatusClass(tournament.status)}`}
-                    >
-                      {getStatusLabel(tournament.status)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div className="space-y-2">
-                      <p className="text-sm text-foreground font-medium">{tournament.game}</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Organizador: {tournament.owner?.username || tournament.createdBy?.username || 'Organizador'}
+                    </p>
+                    <div className="flex items-center gap-4">
+                      <p className="text-base text-foreground font-medium">{tournament.game}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Users className="w-4 h-4" />
                         {currentPlayers} / {tournament.maxParticipants} jugadores
                       </div>
                     </div>
-                    <Link to={`/tournaments/${tournament._id}`}>
-                      <Button className="bg-primary hover:bg-primary/90">
-                        Ver Detalles
-                      </Button>
-                    </Link>
                   </div>
+                  <Link to={`/tournaments/${tournament._id}`}>
+                    <Button className="bg-primary hover:bg-primary/90 transition-colors whitespace-nowrap">
+                      Ver Detalles
+                    </Button>
+                  </Link>
                 </div>
-              </Card>
+              </div>
             );
           })}
         </div>
 
         {filteredTournaments.length === 0 && !loading && (
-          <Card className="bg-card border-border text-center py-12">
+          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl text-center py-16">
             <p className="text-muted-foreground mb-4">No se encontraron torneos</p>
-            <Button variant="outline" onClick={() => setSearchTerm('')}>
+            <Button variant="outline" onClick={() => setSearchTerm('')} className="hover:border-primary transition-colors">
               Limpiar búsqueda
             </Button>
-          </Card>
+          </div>
         )}
       </div>
     </main>
