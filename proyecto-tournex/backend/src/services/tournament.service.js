@@ -138,10 +138,17 @@ export const updateTournament = async (tournamentId, updateData, userId) => {
 
   // No permitir ciertos cambios si el torneo ya empezó
   if (tournament.status === 'in_progress' || tournament.status === 'completed') {
-    const restrictedFields = ['maxParticipants', 'format'];
+    const restrictedFields = [
+      'maxParticipants', 
+      'format', 
+      'registrationStartDate', 
+      'registrationEndDate', 
+      'startDate', 
+      'endDate'
+    ];
     const hasRestrictedChange = restrictedFields.some(field => updateData[field] !== undefined);
     if (hasRestrictedChange) {
-      throw { status: 400, message: 'Cannot modify these fields after tournament started' };
+      throw { status: 400, message: 'No se pueden modificar las fechas ni configuraciones una vez que el torneo está en progreso o completado' };
     }
   }
 
