@@ -37,4 +37,13 @@ router.post(
   matchController.validateMatchResult
 );
 
+// Rutas protegidas - Editar resultado del match (solo si la fase no ha terminado)
+router.put(
+  '/:id/edit-result',
+  protect,
+  isTournamentOwnerOrSuperAdmin,
+  reportResultValidation,
+  matchController.editMatchResult
+);
+
 export default router;

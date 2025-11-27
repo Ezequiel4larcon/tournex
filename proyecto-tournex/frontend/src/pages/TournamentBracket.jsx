@@ -16,6 +16,7 @@ export default function TournamentBracket() {
   const [error, setError] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [reportData, setReportData] = useState({
     winnerId: '',
     score: { participant1Score: 0, participant2Score: 0 },
@@ -47,13 +48,28 @@ export default function TournamentBracket() {
     }
   };
 
-  const handleOpenReportModal = (match) => {
+  const handleOpenReportModal = (match, isEdit = false) => {
     setSelectedMatch(match);
-    setReportData({
-      winnerId: '',
-      score: { participant1Score: 0, participant2Score: 0 },
-      notes: ''
-    });
+    setIsEditMode(isEdit);
+    
+    // Si es edición, pre-cargar los datos existentes
+    if (isEdit && match.winner && match.score) {
+      setReportData({
+        winnerId: match.winner._id || match.winner,
+        score: {
+          participant1Score: match.score.participant1Score || 0,
+          participant2Score: match.score.participant2Score || 0
+        },
+        notes: match.notes || ''
+      });
+    } else {
+      setReportData({
+        winnerId: '',
+        score: { participant1Score: 0, participant2Score: 0 },
+        notes: ''
+      });
+    }
+    
     setShowReportModal(true);
   };
 
@@ -82,7 +98,15 @@ export default function TournamentBracket() {
     }
 
     try {
-      await matchesAPI.report(selectedMatch._id, reportData);
+      // Usar endpoint de edición o reporte según corresponda
+      if (isEditMode) {
+        await matchesAPI.edit(selectedMatch._id, reportData);
+        alert('¡Resultado editado exitosamente!');
+      } else {
+        await matchesAPI.report(selectedMatch._id, reportData);
+        alert('¡Resultado reportado exitosamente!');
+      }
+      
       setShowReportModal(false);
       await loadTournamentData();
       
@@ -93,11 +117,9 @@ export default function TournamentBracket() {
       if (tournamentData.status === 'completed') {
         alert('¡Torneo finalizado! El campeón ha sido coronado.');
         navigate(`/tournaments/${id}`);
-      } else {
-        alert('¡Resultado reportado exitosamente!');
       }
     } catch (err) {
-      alert(`Error al reportar resultado: ${err.response?.data?.message || err.message}`);
+      alert(`Error: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -183,11 +205,22 @@ export default function TournamentBracket() {
                 {isOwner && match.status === 'pending' && match.participant1 && match.participant2 && (
                   <Button 
                     size="sm" 
-                    onClick={() => handleOpenReportModal(match)}
+                    onClick={() => handleOpenReportModal(match, false)}
                     className="bg-primary hover:bg-primary/90"
                   >
                     <Edit className="w-3 h-3 mr-1" />
                     Reportar
+                  </Button>
+                )}
+                {isOwner && (match.status === 'in_progress' || match.status === 'completed') && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleOpenReportModal(match, true)}
+                    variant="outline"
+                    className="border-accent text-accent hover:bg-accent/10"
+                  >
+                    <Edit className="w-3 h-3 mr-1" />
+                    Editar
                   </Button>
                 )}
               </div>
@@ -387,7 +420,9 @@ export default function TournamentBracket() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl max-w-md w-full p-6">
               <div className="mb-6">
-                <h3 className="text-2xl font-bold text-foreground mb-2">Reportar Resultado del Match</h3>
+                <h3 className="text-2xl font-bold text-foreground mb-2">
+                  {isEditMode ? 'Editar Resultado del Match' : 'Reportar Resultado del Match'}
+                </h3>
                 <p className="text-muted-foreground">
                   Ronda {selectedMatch.round} - Match #{selectedMatch.matchNumber}
                 </p>
@@ -465,7 +500,7 @@ export default function TournamentBracket() {
                     onClick={handleReportResult}
                     className="flex-1 bg-primary hover:bg-primary/90"
                   >
-                    Reportar Resultado
+                    {isEditMode ? 'Guardar Cambios' : 'Reportar Resultado'}
                   </Button>
                 </div>
               </div>

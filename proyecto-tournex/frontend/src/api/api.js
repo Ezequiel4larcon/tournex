@@ -65,7 +65,8 @@ export const matchesAPI = {
   getAssigned: () => api.get('/matches/assigned'),
   getById: (id) => api.get(`/matches/${id}`),
   report: (id, data) => api.post(`/matches/${id}/report`, data),
-  validate: (id, data) => api.post(`/matches/${id}/validate`, data),
+  validate: (id, data) => api.post(`/matches/${id}/validate-result`, data),
+  edit: (id, data) => api.put(`/matches/${id}/edit-result`, data),
   uploadEvidence: (id, formData) => api.post(`/matches/${id}/evidence`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),

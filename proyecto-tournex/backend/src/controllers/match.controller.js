@@ -244,3 +244,26 @@ export const reassignReferee = asyncHandler(async (req, res) => {
     data: match
   });
 });
+
+/**
+ * @route   PUT /api/matches/:id/edit-result
+ * @desc    Editar resultado de un match (solo si la fase no ha terminado)
+ * @access  Private (Tournament Owner or Super Admin)
+ */
+export const editMatchResult = asyncHandler(async (req, res) => {
+  const result = await matchService.editMatchResult(
+    req.params.id,
+    req.body,
+    req.user._id
+  );
+  
+  // Emitir evento Socket.IO
+  emitMatchReported(req.params.id, result.match);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Resultado editado exitosamente',
+    data: result
+  });
+});
+

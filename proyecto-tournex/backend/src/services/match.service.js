@@ -426,6 +426,117 @@ export const getMatchById = async (matchId) => {
 };
 
 /**
+ * Editar resultado de un match (solo si la fase no ha terminado)
+ */
+export const editMatchResult = async (matchId, editData, userId) => {
+  const user = await User.findById(userId);
+  const match = await Match.findById(matchId)
+    .populate({
+      path: 'tournament',
+      populate: { path: 'owner' }
+    })
+    .populate('participant1')
+    .populate('participant2');
+
+  if (!match) {
+    throw { status: 404, message: 'Match not found' };
+  }
+
+  // Solo owner del torneo o super_admin pueden editar
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  const isTournamentOwner = (match.tournament && match.tournament.createdBy && 
+    match.tournament.createdBy.toString() === userId.toString()) ||
+    (match.tournament && match.tournament.owner && 
+    match.tournament.owner._id.toString() === userId.toString());
+
+  if (!isAdmin && !isTournamentOwner) {
+    throw { status: 403, message: 'Not authorized to edit this match' };
+  }
+
+  // Verificar que el match esté reportado
+  if (match.status !== 'in_progress' && match.status !== 'completed') {
+    throw { status: 400, message: 'Solo se pueden editar matches que han sido reportados' };
+  }
+
+  // Verificar que la siguiente ronda no haya comenzado
+  if (match.nextMatch) {
+    const nextMatch = await Match.findById(match.nextMatch);
+    if (nextMatch && nextMatch.status !== 'pending') {
+      throw { status: 400, message: 'No se puede editar: la siguiente fase ya comenzó' };
+    }
+  }
+
+  const { winnerId, score, notes } = editData;
+
+  // Validar el ganador
+  if (winnerId !== match.participant1._id.toString() && 
+      winnerId !== match.participant2._id.toString()) {
+    throw { status: 400, message: 'El ganador debe ser uno de los participantes del match' };
+  }
+
+  // Validar scores
+  const isParticipant1Winner = winnerId === match.participant1._id.toString();
+  const winnerScore = isParticipant1Winner ? score.participant1Score : score.participant2Score;
+  const loserScore = isParticipant1Winner ? score.participant2Score : score.participant1Score;
+
+  if (winnerScore <= loserScore) {
+    throw { status: 400, message: 'El ganador debe tener más puntos que el perdedor' };
+  }
+
+  // Si hay cambio de ganador, actualizar participantes
+  const oldWinnerId = match.winner.toString();
+  if (oldWinnerId !== winnerId) {
+    // Revertir estado del antiguo ganador
+    await TournamentParticipant.findByIdAndUpdate(
+      oldWinnerId,
+      { status: 'eliminated' }
+    );
+
+    // Actualizar nuevo ganador
+    await TournamentParticipant.findByIdAndUpdate(
+      winnerId,
+      { status: 'checked_in' }
+    );
+
+    // Actualizar nextMatch si existe
+    if (match.nextMatch) {
+      const nextMatch = await Match.findById(match.nextMatch);
+      if (nextMatch) {
+        if (nextMatch.participant1 && nextMatch.participant1.toString() === oldWinnerId) {
+          nextMatch.participant1 = winnerId;
+        } else if (nextMatch.participant2 && nextMatch.participant2.toString() === oldWinnerId) {
+          nextMatch.participant2 = winnerId;
+        }
+        await nextMatch.save();
+      }
+    }
+  }
+
+  // Actualizar match
+  match.winner = winnerId;
+  match.score = score;
+  match.notes = notes || match.notes;
+  await match.save();
+
+  // Actualizar report
+  const report = await MatchReport.findOne({ match: matchId }).sort({ createdAt: -1 });
+  if (report) {
+    report.winner = winnerId;
+    report.score = score;
+    report.notes = notes || report.notes;
+    await report.save();
+  }
+
+  return {
+    match: await Match.findById(matchId)
+      .populate('tournament')
+      .populate('participant1')
+      .populate('participant2'),
+    report
+  };
+};
+
+/**
  * Generar siguiente ronda del torneo
  */
 const generateNextRound = async (tournamentId, roundNumber, winners) => {
