@@ -133,47 +133,6 @@ export const getUnreadCount = async (userId) => {
 };
 
 /**
- * Crear notificación de invitación a equipo
- */
-export const createTeamInvitationNotification = async (recipientId, teamId, teamName) => {
-  return createNotification({
-    recipient: recipientId,
-    type: 'team_invitation',
-    message: `Has sido invitado a unirte al equipo ${teamName}`,
-    relatedEntity: {
-      entityType: 'Team',
-      entityId: teamId
-    }
-  });
-};
-
-/**
- * Crear notificación de solicitud aceptada
- */
-export const createRequestAcceptedNotification = async (recipientId, teamId, teamName) => {
-  return createNotification({
-    recipient: recipientId,
-    type: 'request_accepted',
-    message: `Tu solicitud para unirte a ${teamName} ha sido aceptada`,
-    relatedEntity: {
-      entityType: 'Team',
-      entityId: teamId
-    }
-  });
-};
-
-/**
- * Crear notificación de solicitud rechazada
- */
-export const createRequestRejectedNotification = async (recipientId, teamName) => {
-  return createNotification({
-    recipient: recipientId,
-    type: 'request_rejected',
-    message: `Tu solicitud para unirte a ${teamName} ha sido rechazada`
-  });
-};
-
-/**
  * Crear notificación de registro a torneo
  */
 export const createTournamentRegistrationNotification = async (recipientId, tournamentId, tournamentName) => {
@@ -196,21 +155,6 @@ export const createMatchReportedNotification = async (recipientId, matchId) => {
     recipient: recipientId,
     type: 'match_reported',
     message: 'Se ha reportado el resultado de tu partido',
-    relatedEntity: {
-      entityType: 'Match',
-      entityId: matchId
-    }
-  });
-};
-
-/**
- * Crear notificación de asignación de árbitro
- */
-export const createRefereeAssignedNotification = async (refereeId, matchId) => {
-  return createNotification({
-    recipient: refereeId,
-    type: 'referee_assigned',
-    message: 'Has sido asignado como árbitro de un nuevo partido',
     relatedEntity: {
       entityType: 'Match',
       entityId: matchId

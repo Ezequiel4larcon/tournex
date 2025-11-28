@@ -12,9 +12,15 @@ const api = axios.create({
 // Interceptor para agregar token a todas las requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // No enviar token en rutas de autenticación
+    const isAuthRoute = config.url?.includes('/auth/login') || 
+                       config.url?.includes('/auth/register');
+    
+    if (!isAuthRoute) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -27,10 +33,16 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Solo redirigir si es 401 y NO es una ruta de login/register
+    const isAuthRoute = error.config?.url?.includes('/auth/login') || 
+                       error.config?.url?.includes('/auth/register');
+    
+    if (error.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
@@ -43,6 +55,16 @@ export const notificationsAPI = {
   markAsRead: (id) => api.put(`/notifications/${id}/read`),
   markAllAsRead: () => api.put('/notifications/read-all'),
   delete: (id) => api.delete(`/notifications/${id}`),
+};
+
+// Auth API
+export const authAPI = {
+  register: (userData) => api.post('/auth/register', userData),
+  login: (credentials) => api.post('/auth/login', credentials),
+  getProfile: () => api.get('/auth/profile'),
+  updateProfile: (userData) => api.put('/auth/profile', userData),
+  changePassword: (passwords) => api.put('/auth/change-password', passwords),
+  logout: () => api.post('/auth/logout'),
 };
 
 // Tournaments API
@@ -67,20 +89,7 @@ export const matchesAPI = {
   report: (id, data) => api.post(`/matches/${id}/report`, data),
   validate: (id, data) => api.post(`/matches/${id}/validate-result`, data),
   edit: (id, data) => api.put(`/matches/${id}/edit-result`, data),
-  uploadEvidence: (id, formData) => api.post(`/matches/${id}/evidence`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-  getEvidences: (id) => api.get(`/matches/${id}/evidences`),
-  reassign: (id, data) => api.post(`/matches/${id}/reassign`, data),
-};
-
-// Messages API
-export const messagesAPI = {
-  send: (data) => api.post('/messages', data),
-  getByContext: (contextType, contextId, params) => api.get(`/messages/${contextType}/${contextId}`, { params }),
-  edit: (id, data) => api.put(`/messages/${id}`, data),
-  delete: (id) => api.delete(`/messages/${id}`),
-  getActiveChats: () => api.get('/messages/chats'),
+  setLive: (id) => api.post(`/matches/${id}/set-live`),
 };
 
 export default api;

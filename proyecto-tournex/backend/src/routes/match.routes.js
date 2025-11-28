@@ -4,7 +4,6 @@ import * as matchController from '../controllers/match.controller.js';
 import { protect, authorize } from '../middlewares/authMiddleware.js';
 import { isTournamentOwnerOrSuperAdmin } from '../middlewares/roleMiddleware.js';
 import { validateRequest } from '../middlewares/validateRequest.js';
-import { upload } from '../middlewares/multerConfig.js';
 
 const router = express.Router();
 
@@ -44,6 +43,14 @@ router.put(
   isTournamentOwnerOrSuperAdmin,
   reportResultValidation,
   matchController.editMatchResult
+);
+
+// Rutas protegidas - Marcar partido como "En Vivo"
+router.post(
+  '/:id/set-live',
+  protect,
+  isTournamentOwnerOrSuperAdmin,
+  matchController.setMatchLive
 );
 
 export default router;

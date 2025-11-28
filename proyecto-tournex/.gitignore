@@ -13,6 +13,17 @@ dist-ssr/
 .env.local
 *.local
 
+# Documentación
+*.md
+!README.md
+FUNCIONALIDADES_CORE.md
+SIMPLIFICACION_COMPLETADA.md
+BAN_PARTICIPANT.md
+backend/SOCKET_EVENTS.md
+backend/MODELO_NEGOCIO.md
+backend/README.md
+frontend/README.md
+
 # OS
 .DS_Store
 Thumbs.db

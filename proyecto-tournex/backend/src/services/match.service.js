@@ -1,6 +1,5 @@
 import Match from '../models/Match.js';
 import MatchReport from '../models/MatchReport.js';
-import Evidence from '../models/Evidence.js';
 import Tournament from '../models/Tournament.js';
 import TournamentParticipant from '../models/TournamentParticipant.js';
 import Notification from '../models/Notification.js';
@@ -283,106 +282,6 @@ export const validateReport = async (matchId, validationData, userId) => {
 };
 
 /**
- * Subir evidencia
- */
-export const uploadEvidence = async (matchId, evidenceData, userId) => {
-  const match = await Match.findById(matchId);
-
-  if (!match) {
-    throw { status: 404, message: 'Match not found' };
-  }
-
-  // Solo el árbitro asignado puede subir evidencias
-  if (!match.assignedReferee || match.assignedReferee.toString() !== userId.toString()) {
-    throw { status: 403, message: 'Only assigned referee can upload evidence' };
-  }
-
-  const evidence = await Evidence.create({
-    match: matchId,
-    uploadedBy: userId,
-    ...evidenceData
-  });
-
-  return evidence;
-};
-
-/**
- * Obtener evidencias de un match
- */
-export const getMatchEvidences = async (matchId) => {
-  const evidences = await Evidence
-    .find({ match: matchId })
-    .populate('uploadedBy', 'username email')
-    .sort({ createdAt: -1 });
-
-  return evidences;
-};
-
-/**
- * Reasignar árbitro (HU-014)
- */
-export const reassignReferee = async (matchId, newRefereeId, adminId) => {
-  const admin = await User.findById(adminId);
-  if (admin.role !== 'admin') {
-    throw { status: 403, message: 'Only admins can reassign referees' };
-  }
-
-  const match = await Match.findById(matchId);
-  if (!match) {
-    throw { status: 404, message: 'Match not found' };
-  }
-
-  const newReferee = await User.findById(newRefereeId);
-  if (!newReferee || newReferee.role !== 'referee') {
-    throw { status: 400, message: 'Invalid referee' };
-  }
-
-  const oldRefereeId = match.assignedReferee;
-  match.assignedReferee = newRefereeId;
-
-  // Si ya había un report, marcarlo como disputed
-  if (match.status === 'completed') {
-    const report = await MatchReport.findOne({ match: matchId });
-    if (report) {
-      report.disputed = true;
-      report.disputeReason = 'Referee reassignment';
-      await report.save();
-    }
-    match.status = 'disputed';
-  }
-
-  await match.save();
-
-  // Notificar al nuevo árbitro
-  await Notification.create({
-    recipient: newRefereeId,
-    type: 'match_assigned',
-    title: 'Match Assigned',
-    message: `You have been assigned to a match`,
-    relatedEntity: {
-      entityType: 'Match',
-      entityId: matchId
-    }
-  });
-
-  // Notificar al antiguo árbitro si había uno
-  if (oldRefereeId) {
-    await Notification.create({
-      recipient: oldRefereeId,
-      type: 'referee_reassigned',
-      title: 'Match Reassigned',
-      message: `You have been removed from a match assignment`,
-      relatedEntity: {
-        entityType: 'Match',
-        entityId: matchId
-      }
-    });
-  }
-
-  return match;
-};
-
-/**
  * Obtener match por ID con detalles completos
  */
 export const getMatchById = async (matchId) => {
@@ -391,15 +290,13 @@ export const getMatchById = async (matchId) => {
     .populate({
       path: 'participant1',
       populate: [
-        { path: 'player', select: 'username avatar' },
-        { path: 'team', select: 'name logo captain', populate: { path: 'captain', select: 'username' } }
+        { path: 'player', select: 'username avatar' }
       ]
     })
     .populate({
       path: 'participant2',
       populate: [
-        { path: 'player', select: 'username avatar' },
-        { path: 'team', select: 'name logo captain', populate: { path: 'captain', select: 'username' } }
+        { path: 'player', select: 'username avatar' }
       ]
     })
     .populate('winner')
@@ -414,21 +311,16 @@ export const getMatchById = async (matchId) => {
     .populate('reportedBy', 'username')
     .populate('validatedBy', 'username');
 
-  // Obtener evidencias
-  const evidences = await Evidence.find({ match: matchId })
-    .populate('uploadedBy', 'username');
-
   return {
     match,
-    report,
-    evidences
+    report
   };
 };
 
 /**
- * Editar resultado de un match (solo si la fase no ha terminado)
+ * Cambiar estado de un match a "en vivo"
  */
-export const editMatchResult = async (matchId, editData, userId) => {
+export const setMatchLive = async (matchId, userId) => {
   const user = await User.findById(userId);
   const match = await Match.findById(matchId)
     .populate({

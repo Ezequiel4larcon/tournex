@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
-import { authAPI } from '../api/forumApi';
+import { authAPI } from '../api/api';
 import { initSocket, disconnectSocket } from '../utils/socket';
 
 export const AuthContext = createContext();
@@ -17,14 +17,33 @@ export const AuthProvider = ({ children }) => {
 
       if (token && savedUser) {
         try {
-          setUser(JSON.parse(savedUser));
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+          
           // Opcionalmente, verificar el token con el backend
-          const response = await authAPI.getProfile();
-          setUser(response.data);
-          localStorage.setItem('user', JSON.stringify(response.data));
+          try {
+            const response = await authAPI.getProfile();
+            const userData = response.data.data || response.data;
+            setUser(userData);
+            localStorage.setItem('user', JSON.stringify(userData));
+          } catch (profileErr) {
+            // Si falla la verificación del perfil, mantener el usuario del localStorage
+            // Solo hacer logout si es un error 401 (token realmente inválido)
+            if (profileErr.response?.status === 401) {
+              console.error('Token inválido, cerrando sesión');
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              setUser(null);
+            } else {
+              // Otros errores (red, servidor) - mantener sesión local
+              console.warn('No se pudo verificar perfil, usando datos locales:', profileErr.message);
+            }
+          }
         } catch (err) {
-          console.error('Error al cargar usuario:', err);
-          logout();
+          console.error('Error al parsear usuario:', err);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
         }
       }
       setLoading(false);
@@ -38,7 +57,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const response = await authAPI.register(userData);
-      const { token, user: newUser } = response.data;
+      const { token, user: newUser } = response.data.data;
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(newUser));
@@ -46,13 +65,14 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (err) {
-      const errorMessage = err.message || 'Error al registrar usuario';
+      console.error('Register error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Error al registrar usuario';
       setError(errorMessage);
       return { 
         success: false, 
         error: {
           message: errorMessage,
-          errors: err.errors || []
+          errors: err.response?.data?.errors || []
         }
       };
     }
@@ -63,7 +83,7 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const response = await authAPI.login(credentials);
-      const { token, user: loggedUser } = response.data;
+      const { token, user: loggedUser } = response.data.data;
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(loggedUser));
@@ -74,13 +94,14 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (err) {
-      const errorMessage = err.message || 'Error al iniciar sesión';
+      console.error('Login error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Error al iniciar sesión';
       setError(errorMessage);
       return { 
         success: false, 
         error: {
           message: errorMessage,
-          errors: err.errors || []
+          errors: err.response?.data?.errors || []
         }
       };
     }

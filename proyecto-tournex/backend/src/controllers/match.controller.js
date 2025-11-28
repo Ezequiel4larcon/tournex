@@ -182,65 +182,22 @@ export const validateReport = asyncHandler(async (req, res) => {
 });
 
 /**
- * @route   POST /api/matches/:id/evidence
- * @desc    Subir evidencia para un match
- * @access  Referee (assigned)
+ * @route   POST /api/matches/:id/set-live
+ * @desc    Marcar un match como "En Vivo"
+ * @access  Private (Tournament Owner or Super Admin)
  */
-export const uploadEvidence = asyncHandler(async (req, res) => {
-  // Asumiendo que el archivo ya fue procesado por multer
-  const evidenceData = {
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    mimetype: req.file.mimetype,
-    size: req.file.size,
-    url: `/uploads/${req.file.filename}`,
-    description: req.body.description
-  };
-
-  const evidence = await matchService.uploadEvidence(
+export const setMatchLive = asyncHandler(async (req, res) => {
+  const match = await matchService.setMatchLive(
     req.params.id,
-    evidenceData,
     req.user._id
   );
   
-  res.status(201).json({
-    success: true,
-    message: 'Evidence uploaded successfully',
-    data: evidence
-  });
-});
-
-/**
- * @route   GET /api/matches/:id/evidences
- * @desc    Obtener evidencias de un match
- * @access  Public
- */
-export const getMatchEvidences = asyncHandler(async (req, res) => {
-  const evidences = await matchService.getMatchEvidences(req.params.id);
+  // Emitir evento Socket.IO
+  emitMatchReported(req.params.id, match);
   
   res.status(200).json({
     success: true,
-    data: evidences
-  });
-});
-
-/**
- * @route   POST /api/matches/:id/reassign
- * @desc    Reasignar árbitro a un match
- * @access  Admin
- */
-export const reassignReferee = asyncHandler(async (req, res) => {
-  const { newRefereeId } = req.body;
-  
-  const match = await matchService.reassignReferee(
-    req.params.id,
-    newRefereeId,
-    req.user._id
-  );
-  
-  res.status(200).json({
-    success: true,
-    message: 'Referee reassigned successfully',
+    message: 'Match marcado como en vivo',
     data: match
   });
 });

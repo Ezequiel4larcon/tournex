@@ -35,7 +35,7 @@ export const registerUser = async (userData) => {
 
   return {
     user: {
-      id: user._id,
+      _id: user._id,
       username: user.username,
       email: user.email,
       role: user.role,
@@ -78,7 +78,7 @@ export const loginUser = async (credentials) => {
 
   return {
     user: {
-      id: user._id,
+      _id: user._id,
       username: user.username,
       email: user.email,
       role: user.role,
