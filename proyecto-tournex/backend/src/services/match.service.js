@@ -380,6 +380,11 @@ export const editMatchResult = async (matchId, editData, userId) => {
     throw { status: 404, message: 'Tournament not found for this match' };
   }
 
+  // No se puede editar si el torneo está completado
+  if (match.tournament.status === 'completed') {
+    throw { status: 400, message: 'No se pueden editar matches de un torneo finalizado' };
+  }
+
   // No se puede editar un match que fue decidido por BYE
   if (match.isBye) {
     throw { status: 400, message: 'No se pueden editar matches decididos por BYE (sin oponente)' };
@@ -404,12 +409,24 @@ export const editMatchResult = async (matchId, editData, userId) => {
     throw { status: 400, message: 'Solo se pueden editar matches que han sido reportados' };
   }
 
-  // Verificar que la siguiente ronda no haya comenzado
-  if (match.nextMatch) {
-    const nextMatch = await Match.findById(match.nextMatch);
-    if (nextMatch && nextMatch.status !== 'pending') {
-      throw { status: 400, message: 'No se puede editar: la siguiente fase ya comenzó' };
-    }
+  // Verificar si todos los partidos de la ronda actual están completados
+  // y si existe algún partido de la siguiente ronda (aunque esté pending)
+  const currentRoundMatches = await Match.find({
+    tournament: match.tournament._id,
+    round: match.round
+  });
+
+  const allCurrentRoundCompleted = currentRoundMatches.every(m => m.status === 'completed');
+  
+  // Buscar si existen partidos de la siguiente ronda
+  const nextRoundMatches = await Match.find({
+    tournament: match.tournament._id,
+    round: match.round + 1
+  });
+
+  // Si todos los partidos de esta ronda están completados Y existe la siguiente ronda, no se puede editar
+  if (allCurrentRoundCompleted && nextRoundMatches.length > 0) {
+    throw { status: 400, message: 'No se puede editar: la ronda ya finalizó y se generó la siguiente fase' };
   }
 
   const { winnerId, score, notes } = editData;

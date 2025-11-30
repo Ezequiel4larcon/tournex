@@ -127,6 +127,33 @@ export default function TournamentBracket() {
   const isSuperAdmin = user?.role === 'super_admin';
   const canManageTournament = isOwner || isSuperAdmin;
 
+  // Función para verificar si se puede editar un partido
+  const canEditMatch = (match) => {
+    // Si el torneo está completado, no se puede editar nada
+    if (tournament?.status === 'completed') {
+      return false;
+    }
+
+    // Si el match no está reportado, no hay nada que editar
+    if (match.status !== 'in_progress' && match.status !== 'completed') {
+      return false;
+    }
+
+    // Verificar si todos los partidos de la ronda actual están completados
+    const currentRoundMatches = matches.filter(m => m.round === match.round);
+    const allCurrentRoundCompleted = currentRoundMatches.every(m => m.status === 'completed');
+
+    // Verificar si existe algún partido de la siguiente ronda
+    const nextRoundMatches = matches.filter(m => m.round === match.round + 1);
+
+    // Si todos los partidos de esta ronda están completados Y existe la siguiente ronda, no se puede editar
+    if (allCurrentRoundCompleted && nextRoundMatches.length > 0) {
+      return false;
+    }
+
+    return true;
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'in_progress':
@@ -214,7 +241,7 @@ export default function TournamentBracket() {
                     Reportar
                   </Button>
                 )}
-                {canManageTournament && (match.status === 'in_progress' || match.status === 'completed') && (
+                {canManageTournament && (match.status === 'in_progress' || match.status === 'completed') && canEditMatch(match) && (
                   <Button 
                     size="sm" 
                     onClick={() => handleOpenReportModal(match, true)}
