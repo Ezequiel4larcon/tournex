@@ -392,7 +392,7 @@ export default function Dashboard() {
                     )}
                     <Link to={`/tournaments/${tournament._id}`}>
                       <Button className="bg-accent hover:bg-accent/90 transition-colors" size="sm">
-                        Moderar
+                        {tournament.status === 'completed' ? 'Ver Detalles' : 'Moderar'}
                       </Button>
                     </Link>
                   </div>

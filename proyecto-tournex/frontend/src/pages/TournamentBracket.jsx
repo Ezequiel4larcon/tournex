@@ -124,6 +124,8 @@ export default function TournamentBracket() {
   };
 
   const isOwner = tournament && user && tournament.owner?._id === user._id;
+  const isSuperAdmin = user?.role === 'super_admin';
+  const canManageTournament = isOwner || isSuperAdmin;
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -202,7 +204,7 @@ export default function TournamentBracket() {
               </div>
               <div className="flex items-center gap-2">
                 {getStatusBadge(match.status)}
-                {isOwner && match.status === 'pending' && match.participant1 && match.participant2 && (
+                {canManageTournament && match.status === 'pending' && match.participant1 && match.participant2 && (
                   <Button 
                     size="sm" 
                     onClick={() => handleOpenReportModal(match, false)}
@@ -212,7 +214,7 @@ export default function TournamentBracket() {
                     Reportar
                   </Button>
                 )}
-                {isOwner && (match.status === 'in_progress' || match.status === 'completed') && (
+                {canManageTournament && (match.status === 'in_progress' || match.status === 'completed') && (
                   <Button 
                     size="sm" 
                     onClick={() => handleOpenReportModal(match, true)}

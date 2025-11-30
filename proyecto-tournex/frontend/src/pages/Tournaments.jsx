@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import { Plus, Search, Users } from 'lucide-react';
+import { Plus, Search, Users, Trash2 } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 import { getSocket } from '../utils/socket';
 
@@ -52,6 +52,21 @@ export default function Tournaments() {
       setError(err.response?.data?.message || err.message || 'Error al cargar torneos');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteTournament = async (tournamentId, tournamentName) => {
+    if (!window.confirm(`¿Estás seguro de que deseas eliminar el torneo "${tournamentName}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    try {
+      await tournamentsAPI.delete(tournamentId);
+      setTournaments(prev => prev.filter(t => t._id !== tournamentId));
+      alert('Torneo eliminado exitosamente');
+    } catch (err) {
+      console.error('Error deleting tournament:', err);
+      alert(`Error al eliminar torneo: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -167,11 +182,21 @@ export default function Tournaments() {
                       </div>
                     </div>
                   </div>
-                  <Link to={`/tournaments/${tournament._id}`}>
-                    <Button className="bg-primary hover:bg-primary/90 transition-colors whitespace-nowrap">
-                      Ver Detalles
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link to={`/tournaments/${tournament._id}`}>
+                      <Button className="bg-primary hover:bg-primary/90 transition-colors whitespace-nowrap">
+                        Ver Detalles
+                      </Button>
+                    </Link>
+                    {user?.role === 'super_admin' && (
+                      <Button
+                        onClick={() => handleDeleteTournament(tournament._id, tournament.name)}
+                        className="bg-destructive hover:bg-destructive/90 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             );

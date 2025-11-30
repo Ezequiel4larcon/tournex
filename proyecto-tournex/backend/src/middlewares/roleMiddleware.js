@@ -53,45 +53,74 @@ export const isTournamentOwnerOrSuperAdmin = async (req, res, next) => {
     return next();
   }
 
-  // Verificar si es el owner del torneo
-  // El tournamentId puede venir de params o del objeto tournament en req
-  const tournamentId = req.params.id || req.params.tournamentId || req.tournament?._id;
-  
-  if (!tournamentId) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'ID de torneo no proporcionado' 
-    });
-  }
-
-  // Si ya tenemos el objeto tournament en req (de otro middleware)
-  if (req.tournament) {
-    if (req.tournament.owner.toString() === req.user._id.toString()) {
-      return next();
-    }
-  }
-
-  // Si no, necesitamos buscar el torneo
   try {
-    const Tournament = (await import('../models/Tournament.js')).default;
-    const tournament = await Tournament.findById(tournamentId);
+    let tournamentId;
+
+    // Si ya tenemos el objeto tournament en req (de otro middleware)
+    if (req.tournament) {
+      tournamentId = req.tournament._id;
+    } else {
+      // Detectar si estamos en una ruta de match (/api/matches/:id/...)
+      const isMatchRoute = req.baseUrl === '/api/matches' && req.params.id;
+      
+      if (isMatchRoute) {
+        // Es una ruta de match, necesitamos obtener el tournament desde el match
+        const Match = (await import('../models/Match.js')).default;
+        const match = await Match.findById(req.params.id).populate('tournament');
+        
+        if (!match) {
+          return res.status(404).json({ 
+            success: false, 
+            message: 'Partido no encontrado' 
+          });
+        }
+
+        if (!match.tournament) {
+          return res.status(404).json({ 
+            success: false, 
+            message: 'Torneo del partido no encontrado' 
+          });
+        }
+
+        tournamentId = match.tournament._id;
+        req.tournament = match.tournament;
+        req.match = match;
+      } else {
+        // Es una ruta de tournament, usar el ID directamente
+        tournamentId = req.params.id || req.params.tournamentId;
+      }
+    }
     
-    if (!tournament) {
-      return res.status(404).json({ 
+    if (!tournamentId) {
+      return res.status(400).json({ 
         success: false, 
-        message: 'Torneo no encontrado' 
+        message: 'ID de torneo no proporcionado' 
       });
     }
 
-    if (tournament.owner.toString() !== req.user._id.toString()) {
+    // Si no tenemos el objeto tournament, buscarlo
+    if (!req.tournament) {
+      const Tournament = (await import('../models/Tournament.js')).default;
+      const tournament = await Tournament.findById(tournamentId);
+      
+      if (!tournament) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Torneo no encontrado' 
+        });
+      }
+
+      req.tournament = tournament;
+    }
+
+    // Verificar ownership
+    if (req.tournament.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({ 
         success: false, 
         message: 'Solo el creador del torneo puede realizar esta acción' 
       });
     }
 
-    // Guardar el torneo en req para uso posterior
-    req.tournament = tournament;
     next();
   } catch (error) {
     return res.status(500).json({ 

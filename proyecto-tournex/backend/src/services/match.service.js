@@ -334,12 +334,66 @@ export const setMatchLive = async (matchId, userId) => {
     throw { status: 404, message: 'Match not found' };
   }
 
+  if (!match.tournament) {
+    throw { status: 404, message: 'Tournament not found for this match' };
+  }
+
+  // Solo owner del torneo o super_admin pueden cambiar estado
+  const isAdmin = user.role === 'admin' || user.role === 'super_admin';
+  
+  // Normalizar el owner ID (puede venir como objeto o string)
+  const tournamentOwnerId = match.tournament.owner?._id 
+    ? match.tournament.owner._id.toString() 
+    : match.tournament.owner.toString();
+  
+  const isTournamentOwner = tournamentOwnerId === userId.toString();
+
+  if (!isAdmin && !isTournamentOwner) {
+    throw { status: 403, message: 'Not authorized to modify this match' };
+  }
+
+  // Cambiar estado a "en vivo"
+  match.status = 'in_progress';
+  await match.save();
+
+  return match;
+};
+
+/**
+ * Editar resultado de un match (solo owner o super_admin)
+ */
+export const editMatchResult = async (matchId, editData, userId) => {
+  const user = await User.findById(userId);
+  const match = await Match.findById(matchId)
+    .populate({
+      path: 'tournament',
+      populate: { path: 'owner' }
+    })
+    .populate('participant1')
+    .populate('participant2');
+
+  if (!match) {
+    throw { status: 404, message: 'Match not found' };
+  }
+
+  if (!match.tournament) {
+    throw { status: 404, message: 'Tournament not found for this match' };
+  }
+
+  // No se puede editar un match que fue decidido por BYE
+  if (match.isBye) {
+    throw { status: 400, message: 'No se pueden editar matches decididos por BYE (sin oponente)' };
+  }
+
   // Solo owner del torneo o super_admin pueden editar
   const isAdmin = user.role === 'admin' || user.role === 'super_admin';
-  const isTournamentOwner = (match.tournament && match.tournament.createdBy && 
-    match.tournament.createdBy.toString() === userId.toString()) ||
-    (match.tournament && match.tournament.owner && 
-    match.tournament.owner._id.toString() === userId.toString());
+  
+  // Normalizar el owner ID (puede venir como objeto o string)
+  const tournamentOwnerId = match.tournament.owner?._id 
+    ? match.tournament.owner._id.toString() 
+    : match.tournament.owner.toString();
+  
+  const isTournamentOwner = tournamentOwnerId === userId.toString();
 
   if (!isAdmin && !isTournamentOwner) {
     throw { status: 403, message: 'Not authorized to edit this match' };

@@ -168,15 +168,18 @@ export const deleteTournament = async (tournamentId, userId) => {
     throw { status: 404, message: 'Tournament not found' };
   }
 
-  if (tournament.createdBy.toString() !== userId.toString()) {
-    const user = await User.findById(userId);
-    if (user.role !== 'admin') {
-      throw { status: 403, message: 'Not authorized to delete this tournament' };
-    }
+  // Verificar si es owner o super admin
+  const user = await User.findById(userId);
+  const isOwner = tournament.owner.toString() === userId.toString();
+  const isSuperAdmin = user.role === 'super_admin';
+
+  if (!isOwner && !isSuperAdmin) {
+    throw { status: 403, message: 'Not authorized to delete this tournament' };
   }
 
-  if (tournament.status === 'in_progress') {
-    throw { status: 400, message: 'Cannot delete tournament in progress' };
+  // Solo super admin puede eliminar torneos en progreso
+  if (tournament.status === 'in_progress' && !isSuperAdmin) {
+    throw { status: 400, message: 'Cannot delete tournament in progress. Only super admin can do this.' };
   }
 
   await Tournament.findByIdAndDelete(tournamentId);
