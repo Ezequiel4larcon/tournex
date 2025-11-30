@@ -80,6 +80,13 @@ const Navbar = () => {
                     Torneos
                   </Link>
                   
+                  {/* Link Admin Panel - Solo super_admin */}
+                  {user?.role === 'super_admin' && (
+                    <Link to="/admin/users" className="text-sm sm:text-base text-muted-foreground hover:text-foreground transition">
+                      Admin
+                    </Link>
+                  )}
+                  
                   <div className="flex items-center gap-3 sm:gap-4 border-l border-border pl-4 sm:pl-6">
                     {/* Bell Icon for Notifications */}
                     <button

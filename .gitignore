@@ -13,6 +13,9 @@ dist-ssr/
 .env.local
 *.local
 
+#Documentación
+docs/
+
 # OS
 .DS_Store
 Thumbs.db

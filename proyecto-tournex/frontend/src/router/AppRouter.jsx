@@ -10,6 +10,7 @@ import Tournaments from '../pages/Tournaments';
 import CreateTournament from '../pages/CreateTournament';
 import TournamentDetail from '../pages/TournamentDetail';
 import TournamentBracket from '../pages/TournamentBracket';
+import AdminUsers from '../pages/AdminUsers';
 
 const AppRouter = () => {
   return (
@@ -65,6 +66,16 @@ const AppRouter = () => {
               element={
                 <ProtectedRoute>
                   <CreateTournament />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* Admin Routes - Solo super_admin */}
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute>
+                  <AdminUsers />
                 </ProtectedRoute>
               }
             />
