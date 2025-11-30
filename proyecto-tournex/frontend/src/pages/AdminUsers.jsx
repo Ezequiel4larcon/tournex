@@ -138,188 +138,179 @@ export default function AdminUsers() {
         {/* Estadísticas */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Total Usuarios
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-foreground">{stats.total}</p>
-              </CardContent>
-            </Card>
+            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <Users className="w-5 h-5 text-primary" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">Total Usuarios</p>
+              </div>
+              <p className="text-3xl font-bold text-foreground">{stats.total}</p>
+            </div>
             
-            <Card className="bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <UserCheck className="w-4 h-4" />
-                  Activos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-foreground">{stats.byStatus.active}</p>
-              </CardContent>
-            </Card>
+            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-accent transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-accent/20 rounded-lg">
+                  <UserCheck className="w-5 h-5 text-accent" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">Activos</p>
+              </div>
+              <p className="text-3xl font-bold text-foreground">{stats.byStatus.active}</p>
+            </div>
             
-            <Card className="bg-gradient-to-br from-red-500/10 to-red-600/10 border-red-500/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <UserX className="w-4 h-4" />
-                  Suspendidos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-foreground">{stats.byStatus.suspended}</p>
-              </CardContent>
-            </Card>
+            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-destructive transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-destructive/20 rounded-lg">
+                  <UserX className="w-5 h-5 text-destructive" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">Suspendidos</p>
+              </div>
+              <p className="text-3xl font-bold text-foreground">{stats.byStatus.suspended}</p>
+            </div>
             
-            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Registros (30d)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-foreground">{stats.recentRegistrations}</p>
-              </CardContent>
-            </Card>
+            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-secondary transition-all duration-300">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-secondary/20 rounded-lg">
+                  <Shield className="w-5 h-5 text-secondary" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">Registros (30d)</p>
+              </div>
+              <p className="text-3xl font-bold text-foreground">{stats.recentRegistrations}</p>
+            </div>
           </div>
         )}
 
         {/* Filtros */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Buscar por username o email
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value);
-                      setPage(1);
-                    }}
-                    placeholder="Buscar usuarios..."
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Filtrar por rol
-                </label>
-                <select
-                  value={roleFilter}
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 mb-6 hover:border-primary transition-all duration-300">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Buscar por username o email
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={search}
                   onChange={(e) => {
-                    setRoleFilter(e.target.value);
+                    setSearch(e.target.value);
                     setPage(1);
                   }}
-                  className="w-full px-4 py-2 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                >
-                  <option value="">Todos los roles</option>
-                  <option value="player">Player</option>
-                  <option value="super_admin">Super Admin</option>
-                </select>
+                  placeholder="Buscar usuarios..."
+                  className="pl-12 h-12 bg-card/50 border-border rounded-xl hover:border-primary transition-colors"
+                />
               </div>
             </div>
-          </CardContent>
-        </Card>
+            
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Filtrar por rol
+              </label>
+              <select
+                value={roleFilter}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full h-12 px-4 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary hover:border-primary transition-colors text-foreground"
+              >
+                <option value="">Todos los roles</option>
+                <option value="player">Player</option>
+                <option value="super_admin">Super Admin</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
         {/* Tabla de usuarios */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b border-border bg-muted/50">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Usuario
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Rol
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Estado
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Último acceso
-                    </th>
-                    <th className="px-6 py-4 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {users.map((u) => (
-                    <tr 
-                      key={u._id} 
-                      className={`hover:bg-muted/50 transition-colors ${!u.isActive ? 'opacity-60' : ''}`}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 flex-shrink-0">
-                            <img
-                              className="h-10 w-10 rounded-full ring-2 ring-border"
-                              src={u.avatar || `https://ui-avatars.com/api/?name=${u.username}&background=random`}
-                              alt={u.username}
-                            />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-foreground">{u.username}</div>
-                          </div>
+        <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl overflow-hidden hover:border-primary transition-all duration-300">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-border bg-muted/30">
+                <tr>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Usuario
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Rol
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Último acceso
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {users.map((u) => (
+                  <tr 
+                    key={u._id} 
+                    className={`hover:bg-muted/30 transition-all duration-200 ${!u.isActive ? 'opacity-60' : ''}`}
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 flex-shrink-0">
+                          <img
+                            className="h-10 w-10 rounded-full ring-2 ring-primary/20"
+                            src={u.avatar || `https://ui-avatars.com/api/?name=${u.username}&background=random`}
+                            alt={u.username}
+                          />
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted-foreground">{u.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <select
-                          value={u.role}
-                          onChange={(e) => handleChangeRole(u._id, e.target.value)}
-                          disabled={u._id === user._id}
-                          className="text-sm bg-card border border-border rounded px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          <option value="player">Player</option>
-                          <option value="super_admin">Super Admin</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          u.isActive 
-                            ? 'bg-green-500/20 text-green-500' 
-                            : 'bg-red-500/20 text-red-500'
-                        }`}>
-                          {u.isActive ? 'Activo' : 'Suspendido'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                        {u.lastLogin ? new Date(u.lastLogin).toLocaleString('es-ES') : 'Nunca'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-foreground">{u.username}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-muted-foreground">{u.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <select
+                        value={u.role}
+                        onChange={(e) => handleChangeRole(u._id, e.target.value)}
+                        disabled={u._id === user._id}
+                        className="text-sm bg-background border border-border rounded-lg px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed text-foreground focus:outline-none focus:ring-2 focus:ring-primary hover:border-primary transition-colors"
+                      >
+                        <option value="player">Player</option>
+                        <option value="super_admin">Super Admin</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-lg ${
+                        u.isActive 
+                          ? 'bg-green-500/20 text-green-500' 
+                          : 'bg-red-500/20 text-red-500'
+                      }`}>
+                        {u.isActive ? 'Activo' : 'Suspendido'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {u.lastLogin ? new Date(u.lastLogin).toLocaleString('es-ES') : 'Nunca'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
                           <Button
                             onClick={() => handleToggleStatus(u._id)}
                             disabled={u._id === user._id}
-                            variant={u.isActive ? 'outline' : 'default'}
                             size="sm"
-                            className={u.isActive ? 'border-yellow-500 text-yellow-500 hover:bg-yellow-500/10' : 'bg-green-500 hover:bg-green-600'}
+                            className={u.isActive 
+                              ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors' 
+                              : 'bg-green-500/20 text-green-500 border border-green-500/30 hover:bg-green-500/30 transition-colors'}
                           >
                             {u.isActive ? 'Suspender' : 'Activar'}
                           </Button>
                           <Button
                             onClick={() => handleDeleteUser(u._id)}
                             disabled={u._id === user._id}
-                            variant="destructive"
                             size="sm"
+                            className="bg-destructive hover:bg-destructive/90 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -330,26 +321,27 @@ export default function AdminUsers() {
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
         {/* Paginación */}
         {totalPages > 1 && (
-          <div className="mt-6 flex justify-center items-center gap-4">
+          <div className="mt-8 flex justify-center items-center gap-4">
             <Button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
               variant="outline"
+              className="hover:border-primary transition-colors"
             >
               Anterior
             </Button>
-            <span className="text-muted-foreground">
+            <span className="text-muted-foreground font-medium">
               Página {page} de {totalPages}
             </span>
             <Button
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
               variant="outline"
+              className="hover:border-primary transition-colors"
             >
               Siguiente
             </Button>
