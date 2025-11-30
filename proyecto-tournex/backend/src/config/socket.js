@@ -69,22 +69,6 @@ export const initializeSocket = (server) => {
       console.log(`${socket.user.username} left match:${matchId}`);
     });
 
-    // Evento: Usuario está escribiendo en chat
-    socket.on('typing', ({ contextType, contextId }) => {
-      socket.to(`${contextType}:${contextId}`).emit('user_typing', {
-        username: socket.user.username,
-        userId: socket.user._id
-      });
-    });
-
-    // Evento: Usuario dejó de escribir
-    socket.on('stop_typing', ({ contextType, contextId }) => {
-      socket.to(`${contextType}:${contextId}`).emit('user_stop_typing', {
-        username: socket.user.username,
-        userId: socket.user._id
-      });
-    });
-
     // Desconexión
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.user.username}`);
@@ -110,33 +94,6 @@ export const getIO = () => {
 export const emitNotification = (userId, notification) => {
   if (io) {
     io.to(`user:${userId}`).emit('new_notification', notification);
-  }
-};
-
-/**
- * Emitir mensaje a sala de contexto
- */
-export const emitMessage = (contextType, contextId, message) => {
-  if (io) {
-    io.to(`${contextType}:${contextId}`).emit('new_message', message);
-  }
-};
-
-/**
- * Emitir eliminación de mensaje
- */
-export const emitMessageDeleted = (contextType, contextId, messageId) => {
-  if (io) {
-    io.to(`${contextType}:${contextId}`).emit('message_deleted', { messageId });
-  }
-};
-
-/**
- * Emitir edición de mensaje
- */
-export const emitMessageEdited = (contextType, contextId, message) => {
-  if (io) {
-    io.to(`${contextType}:${contextId}`).emit('message_edited', message);
   }
 };
 
@@ -187,23 +144,5 @@ export const emitTournamentEnd = (tournamentId, winner) => {
       message: 'The tournament has ended!',
       winner
     });
-  }
-};
-
-/**
- * Emitir actualización de equipo
- */
-export const emitTeamUpdate = (teamId, update) => {
-  if (io) {
-    io.to(`team:${teamId}`).emit('team_updated', update);
-  }
-};
-
-/**
- * Emitir nueva solicitud de membresía
- */
-export const emitNewMembershipRequest = (teamId, request) => {
-  if (io) {
-    io.to(`team:${teamId}`).emit('new_membership_request', request);
   }
 };
