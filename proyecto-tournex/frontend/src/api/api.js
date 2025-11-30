@@ -80,6 +80,8 @@ export const tournamentsAPI = {
   start: (id) => api.post(`/tournaments/${id}/start`),
   getMatches: (id) => api.get(`/tournaments/${id}/matches`),
   banParticipant: (id, participantId) => api.post(`/tournaments/${id}/ban/${participantId}`),
+  generateNextPhase: (id, round) => api.post(`/tournaments/${id}/generate-next-phase`, { round }),
+  finalize: (id, round) => api.post(`/tournaments/${id}/finalize`, { round }),
 };
 
 // Matches API

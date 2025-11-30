@@ -123,6 +123,76 @@ export default function TournamentBracket() {
     }
   };
 
+  const handleEditResult = async () => {
+    try {
+      if (!reportData.winnerId) {
+        alert('Por favor selecciona un ganador');
+        return;
+      }
+      
+      await matchesAPI.edit(selectedMatch._id, reportData);
+      alert('Resultado editado exitosamente');
+      setShowReportModal(false);
+      loadTournamentData();
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleGenerateNextPhase = async (round) => {
+    try {
+      const confirmed = confirm(`¿Estás seguro de que deseas generar la siguiente fase después de la ronda ${round}?`);
+      if (!confirmed) return;
+
+      await tournamentsAPI.generateNextPhase(tournament._id, round);
+      alert('¡Siguiente fase generada exitosamente!');
+      loadTournamentData();
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleFinalizeTournament = async (round) => {
+    try {
+      const confirmed = confirm('¿Estás seguro de que deseas finalizar el torneo? Esta acción no se puede deshacer.');
+      if (!confirmed) return;
+
+      await tournamentsAPI.finalize(tournament._id, round);
+      alert('¡Torneo finalizado exitosamente! 🏆');
+      loadTournamentData();
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  // Verificar si una ronda está completada y si se puede generar la siguiente
+  const canGenerateNextPhase = (round) => {
+    if (!canManageTournament) return false;
+    if (tournament?.status === 'completed') return false;
+
+    const currentRoundMatches = matches.filter(m => m.round === round);
+    if (currentRoundMatches.length === 0) return false;
+
+    const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
+    const nextRoundExists = matches.some(m => m.round === round + 1);
+
+    return allCompleted && !nextRoundExists && currentRoundMatches.length > 1;
+  };
+
+  // Verificar si es la ronda final y se puede finalizar el torneo
+  const canFinalizeTournament = (round) => {
+    if (!canManageTournament) return false;
+    if (tournament?.status === 'completed') return false;
+
+    const currentRoundMatches = matches.filter(m => m.round === round);
+    if (currentRoundMatches.length !== 1) return false; // Debe ser solo 1 match (la final)
+
+    const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
+    const nextRoundExists = matches.some(m => m.round === round + 1);
+
+    return allCompleted && !nextRoundExists;
+  };
+
   const isOwner = tournament && user && tournament.owner?._id === user._id;
   const isSuperAdmin = user?.role === 'super_admin';
   const canManageTournament = isOwner || isSuperAdmin;
@@ -370,18 +440,49 @@ export default function TournamentBracket() {
 
         {/* Bracket Display */}
         <div className="space-y-8">
-          {rounds.map((round) => (
-            <div key={round} className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-8 hover:border-primary transition-all duration-300">
-              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-2">
-                {getRoundName(Number(round), rounds.length)} ({matchesByRound[round].length} matches)
-              </h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {matchesByRound[round].map((match) => (
-                  <MatchCard key={match._id} match={match} />
-                ))}
+          {rounds.map((round) => {
+            const roundNumber = Number(round);
+            const showGenerateButton = canGenerateNextPhase(roundNumber);
+            const showFinalizeButton = canFinalizeTournament(roundNumber);
+
+            return (
+              <div key={round} className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-8 hover:border-primary transition-all duration-300">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                    {getRoundName(roundNumber, rounds.length)} ({matchesByRound[round].length} matches)
+                  </h2>
+                  
+                  {/* Botones para generar siguiente fase o finalizar */}
+                  <div className="flex gap-3">
+                    {showGenerateButton && (
+                      <Button
+                        onClick={() => handleGenerateNextPhase(roundNumber)}
+                        className="bg-accent hover:bg-accent/90"
+                      >
+                        <Trophy className="w-4 h-4 mr-2" />
+                        Generar Siguiente Fase
+                      </Button>
+                    )}
+                    {showFinalizeButton && (
+                      <Button
+                        onClick={() => handleFinalizeTournament(roundNumber)}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        <Trophy className="w-4 h-4 mr-2" />
+                        Finalizar Torneo 🏆
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {matchesByRound[round].map((match) => (
+                    <MatchCard key={match._id} match={match} />
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {matches.length === 0 && (

@@ -93,4 +93,20 @@ router.post(
   tournamentController.banParticipant
 );
 
+// Owner del torneo o super admin pueden generar la siguiente fase
+router.post(
+  '/:id/generate-next-phase',
+  protect,
+  isTournamentOwnerOrSuperAdmin,
+  tournamentController.generateNextPhase
+);
+
+// Owner del torneo o super admin pueden finalizar el torneo
+router.post(
+  '/:id/finalize',
+  protect,
+  isTournamentOwnerOrSuperAdmin,
+  tournamentController.finalizeTournament
+);
+
 export default router;

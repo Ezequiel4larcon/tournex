@@ -130,7 +130,7 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
       { status: 'eliminated' }
     );
 
-    // 4. Avanzar bracket y generar siguiente ronda si es necesario
+    // 4. Avanzar bracket si es necesario (solo si nextMatch ya existe)
     if (match.nextMatch) {
       const nextMatch = await Match.findById(match.nextMatch);
       if (nextMatch) {
@@ -141,43 +141,9 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
         }
         await nextMatch.save();
       }
-    } else {
-      // Verificar si todos los matches de la ronda actual están completos
-      const currentRoundMatches = await Match.find({
-        tournament: match.tournament._id,
-        round: match.round
-      });
-
-      const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
-
-      if (allCompleted) {
-        // Obtener ganadores de la ronda actual
-        const winners = currentRoundMatches
-          .filter(m => m.winner)
-          .map(m => m.winner);
-
-        console.log('Ronda completada. Ganadores:', winners.length);
-
-        // Si hay más de 1 ganador, crear siguiente ronda
-        if (winners.length > 1) {
-          await generateNextRound(match.tournament._id, match.round + 1, winners);
-        } else if (winners.length === 1) {
-          // Solo queda un ganador, marcar como campeón y finalizar torneo
-          console.log('¡Torneo completado! Ganador:', winners[0]);
-          await TournamentParticipant.findByIdAndUpdate(
-            winners[0],
-            { status: 'winner' }
-          );
-          await Tournament.findByIdAndUpdate(
-            match.tournament._id,
-            { 
-              status: 'completed',
-              winner: winners[0]
-            }
-          );
-        }
-      }
     }
+    // Ya no generamos automáticamente las siguientes rondas
+    // Ahora se debe usar el botón "Generar Siguiente Fase" manualmente
 
     // 5. Notificar a los participantes
     const participant1 = match.participant1;
@@ -538,4 +504,148 @@ const generateNextRound = async (tournamentId, roundNumber, winners) => {
   }
 
   return matches;
+};
+
+/**
+ * Generar siguiente fase manualmente
+ */
+export const generateNextPhase = async (tournamentId, round, userId) => {
+  const user = await User.findById(userId);
+  const tournament = await Tournament.findById(tournamentId).populate('owner');
+
+  if (!tournament) {
+    throw { status: 404, message: 'Torneo no encontrado' };
+  }
+
+  // Verificar permisos
+  const isSuperAdmin = user.role === 'super_admin';
+  const isOwner = tournament.owner._id.toString() === userId.toString();
+
+  if (!isSuperAdmin && !isOwner) {
+    throw { status: 403, message: 'No tienes permisos para generar la siguiente fase' };
+  }
+
+  // Verificar que todos los partidos de la ronda estén completados
+  const currentRoundMatches = await Match.find({
+    tournament: tournamentId,
+    round: round
+  });
+
+  if (currentRoundMatches.length === 0) {
+    throw { status: 400, message: 'No hay partidos en esta ronda' };
+  }
+
+  const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
+  if (!allCompleted) {
+    throw { status: 400, message: 'Todos los partidos de la ronda deben estar completados' };
+  }
+
+  // Verificar que no exista ya la siguiente ronda
+  const nextRoundMatches = await Match.find({
+    tournament: tournamentId,
+    round: round + 1
+  });
+
+  if (nextRoundMatches.length > 0) {
+    throw { status: 400, message: 'La siguiente ronda ya fue generada' };
+  }
+
+  // Obtener ganadores de la ronda actual
+  const winners = currentRoundMatches
+    .filter(m => m.winner)
+    .map(m => m.winner);
+
+  if (winners.length <= 1) {
+    throw { status: 400, message: 'No hay suficientes ganadores para generar la siguiente ronda' };
+  }
+
+  // Generar siguiente ronda
+  const newMatches = await generateNextRound(tournamentId, round + 1, winners);
+
+  return {
+    message: 'Siguiente fase generada exitosamente',
+    matches: newMatches,
+    round: round + 1
+  };
+};
+
+/**
+ * Finalizar torneo manualmente
+ */
+export const finalizeTournament = async (tournamentId, round, userId) => {
+  const user = await User.findById(userId);
+  const tournament = await Tournament.findById(tournamentId).populate('owner');
+
+  if (!tournament) {
+    throw { status: 404, message: 'Torneo no encontrado' };
+  }
+
+  // Verificar permisos
+  const isSuperAdmin = user.role === 'super_admin';
+  const isOwner = tournament.owner._id.toString() === userId.toString();
+
+  if (!isSuperAdmin && !isOwner) {
+    throw { status: 403, message: 'No tienes permisos para finalizar el torneo' };
+  }
+
+  // Verificar que todos los partidos de la ronda final estén completados
+  const finalRoundMatches = await Match.find({
+    tournament: tournamentId,
+    round: round
+  });
+
+  if (finalRoundMatches.length === 0) {
+    throw { status: 400, message: 'No hay partidos en la ronda final' };
+  }
+
+  const allCompleted = finalRoundMatches.every(m => m.status === 'completed');
+  if (!allCompleted) {
+    throw { status: 400, message: 'Todos los partidos de la ronda final deben estar completados' };
+  }
+
+  // Debe haber solo 1 partido en la final
+  if (finalRoundMatches.length !== 1) {
+    throw { status: 400, message: 'La ronda final debe tener exactamente 1 partido' };
+  }
+
+  const finalMatch = finalRoundMatches[0];
+  if (!finalMatch.winner) {
+    throw { status: 400, message: 'El partido final debe tener un ganador' };
+  }
+
+  // Marcar al ganador
+  await TournamentParticipant.findByIdAndUpdate(
+    finalMatch.winner,
+    { status: 'winner' }
+  );
+
+  // Finalizar el torneo
+  await Tournament.findByIdAndUpdate(
+    tournamentId,
+    { 
+      status: 'completed',
+      winner: finalMatch.winner
+    }
+  );
+
+  // Crear notificación para el ganador
+  const winnerParticipant = await TournamentParticipant.findById(finalMatch.winner);
+  if (winnerParticipant && winnerParticipant.player) {
+    await Notification.create({
+      recipient: winnerParticipant.player,
+      type: 'tournament_completed',
+      title: '¡Felicidades! 🏆',
+      message: `¡Has ganado el torneo ${tournament.name}!`,
+      relatedEntity: {
+        entityType: 'Tournament',
+        entityId: tournamentId
+      }
+    });
+  }
+
+  return {
+    message: 'Torneo finalizado exitosamente',
+    winner: finalMatch.winner,
+    tournament: tournament
+  };
 };

@@ -224,3 +224,50 @@ export const editMatchResult = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @route   POST /api/tournaments/:id/generate-next-phase
+ * @desc    Generar siguiente fase del torneo
+ * @access  Private (Tournament Owner or Super Admin)
+ */
+export const generateNextPhase = asyncHandler(async (req, res) => {
+  const { round } = req.body;
+  
+  const result = await matchService.generateNextPhase(
+    req.params.id,
+    round,
+    req.user._id
+  );
+  
+  res.status(200).json({
+    success: true,
+    message: result.message,
+    data: {
+      matches: result.matches,
+      round: result.round
+    }
+  });
+});
+
+/**
+ * @route   POST /api/tournaments/:id/finalize
+ * @desc    Finalizar torneo
+ * @access  Private (Tournament Owner or Super Admin)
+ */
+export const finalizeTournament = asyncHandler(async (req, res) => {
+  const { round } = req.body;
+  
+  const result = await matchService.finalizeTournament(
+    req.params.id,
+    round,
+    req.user._id
+  );
+  
+  res.status(200).json({
+    success: true,
+    message: result.message,
+    data: {
+      winner: result.winner,
+      tournament: result.tournament
+    }
+  });
+});
