@@ -129,9 +129,9 @@ export const updateTournament = async (tournamentId, updateData, userId) => {
   }
 
   // Solo el creador o admin pueden actualizar
-  if (tournament.createdBy.toString() !== userId.toString()) {
+  if (tournament.owner.toString() !== userId.toString()) {
     const user = await User.findById(userId);
-    if (user.role !== 'admin') {
+    if (user.role !== 'super_admin') {
       throw { status: 403, message: 'Not authorized to update this tournament' };
     }
   }
@@ -153,6 +153,34 @@ export const updateTournament = async (tournamentId, updateData, userId) => {
   }
 
   Object.assign(tournament, updateData);
+
+  // Auto-actualizar estado basándose en las fechas
+  const now = new Date();
+  const regStart = new Date(tournament.registrationStartDate);
+  const regEnd = new Date(tournament.registrationEndDate);
+  const tournamentStart = new Date(tournament.startDate);
+  const tournamentEnd = new Date(tournament.endDate);
+
+  // Solo actualizar estado si no está en progreso o completado
+  if (tournament.status !== 'in_progress' && tournament.status !== 'completed') {
+    if (now < regStart) {
+      // Antes del inicio de inscripciones
+      tournament.status = 'pending';
+    } else if (now >= regStart && now <= regEnd) {
+      // Dentro del período de inscripciones
+      tournament.status = 'registration_open';
+    } else if (now > regEnd && now < tournamentStart) {
+      // Inscripciones cerradas, esperando inicio del torneo
+      tournament.status = 'registration_closed';
+    } else if (now >= tournamentStart && now <= tournamentEnd) {
+      // Durante el torneo (solo si no está marcado como in_progress manualmente)
+      if (tournament.status === 'pending' || tournament.status === 'registration_open' || tournament.status === 'registration_closed') {
+        tournament.status = 'registration_closed'; // No cambiar a in_progress automáticamente
+      }
+    }
+    // No cambiar a completed automáticamente, debe hacerse manualmente
+  }
+
   await tournament.save();
 
   return tournament;
