@@ -4,7 +4,6 @@ uploads/
 .env
 *.log
 dist/
-src/scripts/
 
 # Frontend
 node_modules/
