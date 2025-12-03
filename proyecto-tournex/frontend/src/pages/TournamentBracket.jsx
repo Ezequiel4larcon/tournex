@@ -152,6 +152,16 @@ export default function TournamentBracket() {
     }
   };
 
+  const handleSetMatchLive = async (matchId) => {
+    try {
+      await matchesAPI.setLive(matchId);
+      alert('¡Partido marcado como EN VIVO!');
+      loadTournamentData();
+    } catch (err) {
+      alert(`Error: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
   const handleFinalizeTournament = async (round) => {
     try {
       const confirmed = confirm('¿Estás seguro de que deseas finalizar el torneo? Esta acción no se puede deshacer.');
@@ -309,14 +319,24 @@ export default function TournamentBracket() {
               <div className="flex items-center gap-2">
                 {getStatusBadge(match.status)}
                 {canManageTournament && match.status === 'pending' && match.participant1 && match.participant2 && !isByeMatch && (
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleOpenReportModal(match, false)}
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    <Edit className="w-3 h-3 mr-1" />
-                    Reportar
-                  </Button>
+                  <>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleSetMatchLive(match._id)}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      <Flame className="w-3 h-3 mr-1" />
+                      Iniciar
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleOpenReportModal(match, false)}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <Edit className="w-3 h-3 mr-1" />
+                      Reportar
+                    </Button>
+                  </>
                 )}
                 {canManageTournament && (match.status === 'in_progress' || match.status === 'completed') && !isByeMatch && canEditMatch(match) && (
                   <Button 
@@ -444,6 +464,63 @@ export default function TournamentBracket() {
             <p className="text-4xl font-bold text-accent">{completedMatches.length}</p>
           </div>
         </div>
+
+        {/* Live Matches Section */}
+        {liveMatches.length > 0 && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-destructive/10 to-accent/10 backdrop-blur-sm border border-destructive/30 rounded-xl p-8">
+              <h2 className="text-2xl font-bold text-foreground mb-6 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center">
+                  <Flame className="w-6 h-6 text-destructive animate-pulse" />
+                </div>
+                Partidos en Vivo ({liveMatches.length})
+              </h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {liveMatches.map((match) => (
+                  <div key={match._id} className="bg-card/80 backdrop-blur-sm border border-destructive/50 rounded-xl p-6 shadow-lg shadow-destructive/20">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-xs text-muted-foreground">
+                        Ronda {match.round} - Match #{match.matchNumber}
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/20 text-destructive font-medium text-xs">
+                        <Flame className="w-3 h-3 animate-pulse" />
+                        EN VIVO
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-foreground">
+                          {match.participant1?.player?.username || 'TBD'}
+                        </span>
+                        <span className="text-2xl font-bold text-destructive animate-pulse">
+                          {match.score?.participant1Score || 0}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold text-foreground">
+                          {match.participant2?.player?.username || 'TBD'}
+                        </span>
+                        <span className="text-2xl font-bold text-destructive animate-pulse">
+                          {match.score?.participant2Score || 0}
+                        </span>
+                      </div>
+                    </div>
+                    {canManageTournament && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleOpenReportModal(match, false)}
+                        className="w-full mt-4 bg-primary hover:bg-primary/90"
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Reportar Resultado
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bracket Display */}
         <div className="space-y-8">

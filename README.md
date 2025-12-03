@@ -1,117 +1,38 @@
 # TourneX - Sistema de Gestión de Torneos
 
-Sistema completo de torneos 1v1 desarrollado con Node.js, Express, MongoDB en el backend y React, Tailwind CSS en el frontend.
+Plataforma de torneos 1v1 con brackets de eliminación simple, gestión en tiempo real y notificaciones vía Socket.IO.
 
-## 📋 Resumen del Sistema
+## 📋 Modelo de Negocio
 
-TourneX es una plataforma de torneos 1v1 (player vs player) donde cualquier usuario puede crear y moderar sus propios torneos. El sistema permite la gestión completa de torneos de eliminación simple con brackets interactivos, validación de resultados en tiempo real y notificaciones vía Socket.IO.
+**TourneX** permite a cualquier usuario crear y gestionar torneos competitivos 1v1. El sistema soporta torneos de eliminación simple con generación automática de brackets, validación de resultados y seguimiento en vivo de partidos.
 
-### Modelo de Negocio
+### Roles
 
-#### Roles de Usuario
+- **Player**: Crea torneos (se convierte en owner), se registra en torneos y compite en partidas 1v1
+- **Super Admin**: Gestión completa de usuarios, permisos globales sobre todos los torneos
 
-**Player** (Rol por defecto)
-- Puede registrarse en la plataforma
-- Puede crear torneos (convirtiéndose en owner/moderador de ese torneo)
-- Puede unirse a torneos disponibles
-- Compite en partidas 1v1 contra otros jugadores
+### Flujo de Torneo
 
-**Super Admin** (Rol especial)
-- Tiene permisos globales sobre toda la plataforma
-- Puede ver, editar y eliminar cualquier torneo
-- Puede moderar cualquier torneo
-- Puede validar resultados de cualquier partida
+1. **Creación**: Usuario crea torneo (capacidad: 2-32 participantes)
+2. **Registro**: Período de inscripción abierto por el owner
+3. **Brackets**: Generación automática de llaves (maneja participantes impares con sistema BYE)
+4. **Partidos**: Owner marca partidos en vivo, reporta resultados con scores
+5. **Progresión**: Avance manual de fases por el owner
+6. **Finalización**: Torneo completa cuando se determina el ganador
 
-#### Flujo de un Torneo
+### Características Clave
 
-```
-1. Usuario crea torneo → Se convierte en owner/moderador
-2. Período de registro → Jugadores se unen (1v1)
-3. Owner genera brackets → Se crean partidas player vs player
-4. Owner inicia torneo → Estado: in_progress
-5. Las partidas se juegan
-6. Owner valida resultados → Ingresa ganador y score
-7. Bracket avanza automáticamente
-8. Torneo completa → Se determina el ganador
-```
+- Sistema BYE para torneos con participantes impares (pase automático)
+- Partidos en vivo con indicadores visuales para todos los usuarios
+- Control manual de progresión de fases
+- Validaciones de edición (no editar partidos BYE, rondas completadas o torneos finalizados)
+- Notificaciones en tiempo real vía Socket.IO
+- Panel de administración con CRUD completo de usuarios
 
-## 🚀 Tecnologías
+## ⚙️ Configuración Backend
 
-### Backend
-- **Node.js** + **Express** - Servidor web
-- **MongoDB** + **Mongoose** - Base de datos NoSQL
-- **JWT** - Autenticación con tokens
-- **bcryptjs** - Encriptación de contraseñas
-- **Socket.IO** - Notificaciones en tiempo real
-- **express-validator** - Validación de datos
+Crear archivo `.env` en `/backend`:
 
-### Frontend
-- **React 18** - Librería de UI
-- **Vite** - Build tool moderno
-- **Tailwind CSS** - Framework CSS utility-first
-- **Axios** - Cliente HTTP
-- **React Router** - Enrutamiento SPA
-- **Context API** - Gestión de estado global
-- **Socket.IO Client** - WebSockets cliente
-
-## 📁 Estructura del Proyecto
-
-```
-proyecto-tournex/
-├── backend/              # Servidor Node.js
-│   ├── src/
-│   │   ├── config/      # Configuración
-│   │   ├── models/      # Modelos de Mongoose
-│   │   ├── controllers/ # Controladores
-│   │   ├── services/    # Lógica de negocio
-│   │   ├── routes/      # Rutas de API
-│   │   ├── middlewares/ # Middlewares
-│   │   ├── utils/       # Utilidades
-│   │   ├── app.js       # Aplicación Express
-│   │   └── server.js    # Servidor
-│   ├── uploads/         # Archivos subidos
-│   ├── package.json
-│   └── README.md
-│
-└── frontend/            # Aplicación React
-    ├── src/
-    │   ├── api/         # Cliente API
-    │   ├── components/  # Componentes
-    │   ├── context/     # Contextos
-    │   ├── hooks/       # Custom hooks
-    │   ├── pages/       # Páginas
-    │   ├── router/      # Rutas
-    │   └── utils/       # Utilidades
-    ├── package.json
-    └── README.md
-```
-
-## 🛠️ Instalación
-
-### Prerrequisitos
-- Node.js 18+ instalado
-- MongoDB instalado y corriendo
-- npm o yarn
-
-### 1. Clonar el repositorio
-
-```bash
-cd proyecto-tournex
-```
-
-### 2. Configurar Backend
-
-```bash
-cd backend
-npm install
-
-# Crear archivo .env
-cp .env.example .env
-
-# Editar .env con tus configuraciones
-```
-
-**Archivo `.env` del backend:**
 ```env
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/tournex
@@ -120,185 +41,36 @@ JWT_EXPIRES_IN=7d
 NODE_ENV=development
 ```
 
-### 3. Configurar Frontend
-
-```bash
-cd ../frontend
-npm install
-
-# Crear archivo .env (opcional)
-cp .env.example .env
-```
-
-**Archivo `.env` del frontend:**
-```env
-VITE_API_URL=http://localhost:5000/api
-```
+**Variables:**
+- `PORT`: Puerto del servidor Express (default: 5000)
+- `MONGODB_URI`: Conexión a MongoDB (local o MongoDB Atlas)
+- `JWT_SECRET`: Clave secreta para firmar tokens JWT (usar string aleatorio y seguro)
+- `JWT_EXPIRES_IN`: Duración de sesión (ej: 7d, 24h, 30m)
+- `NODE_ENV`: Entorno de ejecución (development/production)
 
 ## 🚀 Ejecución
 
-### Iniciar MongoDB
-
-```bash
-# Windows
-net start MongoDB
-
-# Linux/Mac
-sudo systemctl start mongod
-```
-
-### Iniciar Backend
-
+### Backend
 ```bash
 cd backend
-npm run dev
+npm install
+npm start
 ```
-El backend estará disponible en `http://localhost:5000`
 
-### Iniciar Frontend
-
+### Frontend
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
-El frontend estará disponible en `http://localhost:3000`
 
-## 📚 Características
+**URLs:**
+- Backend: http://localhost:5000
+- Frontend: http://localhost:5173
 
-### Autenticación y Usuarios
-- ✅ Registro de usuarios
-- ✅ Inicio de sesión con email
-- ✅ Autenticación JWT
-- ✅ Roles (player, super_admin)
-- ✅ Actualización de perfil
-- ✅ Cambio de contraseña
-- ✅ Avatar de usuario
+---
 
-### Gestión de Torneos
-- ✅ Crear torneos (cualquier usuario)
-- ✅ Editar y eliminar torneos (owner o super_admin)
-- ✅ Inscripción de jugadores (1v1)
-- ✅ Generación automática de brackets
-- ✅ Estados: pending, registration_open, registration_closed, in_progress, completed
-- ✅ Validación de fechas de registro e inicio
-- ✅ Contador de participantes
-- ✅ Límite de participantes: 2, 4, 8, 16, 32
-- ✅ Banear participantes (owner o super_admin)
-
-### Sistema de Partidas (Matches)
-- ✅ Partidas 1v1 (player vs player)
-- ✅ Reportar resultados (owner o super_admin)
-- ✅ Validar resultados
-- ✅ Editar resultados (si la fase no ha terminado)
-- ✅ Marcar partidas como "En Vivo"
-- ✅ Estados: pending, in_progress, completed, cancelled
-- ✅ Score y notas de partidas
-- ✅ Avance automático de ganadores en el bracket
-
-### Notificaciones en Tiempo Real
-- ✅ Socket.IO para actualizaciones en vivo
-- ✅ Notificación de inscripción a torneo
-- ✅ Notificación de inicio de torneo
-- ✅ Notificación de fin de torneo
-- ✅ Notificación de resultado reportado
-- ✅ Contador de notificaciones no leídas
-- ✅ Marcar notificaciones como leídas
-
-### Interfaz de Usuario
-- ✅ Dashboard con estadísticas personalizadas
-- ✅ Lista de torneos disponibles
-- ✅ Detalle de torneos con participantes
-- ✅ Bracket visual interactivo
-- ✅ Indicadores visuales de estado (En Vivo, Completado)
-- ✅ Panel de notificaciones
-- ✅ Diseño responsivo con TailwindCSS
-- ✅ Tema oscuro (oklch colors)
-
-## 🔌 API Endpoints
-
-### Autenticación (`/api/auth`)
-```
-POST   /register         - Registrar usuario
-POST   /login            - Iniciar sesión
-GET    /profile          - Obtener perfil (protegido)
-PUT    /profile          - Actualizar perfil (protegido)
-PUT    /change-password  - Cambiar contraseña (protegido)
-POST   /logout           - Cerrar sesión (protegido)
-```
-
-### Torneos (`/api/tournaments`)
-```
-GET    /                      - Listar torneos
-POST   /                      - Crear torneo (protegido)
-GET    /:id                   - Ver detalle de torneo
-PUT    /:id                   - Editar torneo (owner o super_admin)
-DELETE /:id                   - Eliminar torneo (owner o super_admin)
-POST   /:id/register          - Inscribirse a torneo (protegido)
-POST   /:id/open-registration - Abrir inscripciones (owner o super_admin)
-POST   /:id/generate-bracket  - Generar brackets (owner o super_admin)
-POST   /:id/start             - Iniciar torneo (owner o super_admin)
-GET    /:id/matches           - Obtener partidas del torneo
-POST   /:id/ban/:participantId - Banear participante (owner o super_admin)
-```
-
-### Partidas (`/api/matches`)
-```
-GET    /:id                  - Ver detalle de partida
-POST   /:id/report           - Reportar resultado (protegido)
-POST   /:id/validate-result  - Validar resultado (owner o super_admin)
-PUT    /:id/edit-result      - Editar resultado (owner o super_admin)
-POST   /:id/set-live         - Marcar como "En Vivo" (owner o super_admin)
-```
-
-### Notificaciones (`/api/notifications`)
-```
-GET    /                - Listar notificaciones (protegido)
-GET    /unread-count    - Contador de no leídas (protegido)
-PUT    /:id/read        - Marcar como leída (protegido)
-PUT    /read-all        - Marcar todas como leídas (protegido)
-DELETE /:id             - Eliminar notificación (protegido)
-```
-
-### Usuarios (`/api/users`)
-```
-GET    /              - Listar usuarios (super_admin)
-GET    /:id           - Ver perfil de usuario (super_admin)
-PUT    /:id/role      - Cambiar rol (super_admin)
-PUT    /:id/status    - Activar/suspender (super_admin)
-```
-
-## 🔐 Roles y Permisos
-
-### Player (Usuario por defecto)
-- Crear torneos
-- Inscribirse a torneos
-- Ver torneos y partidas
-- Recibir notificaciones
-- Como **owner de su torneo**:
-  - Editar/eliminar su torneo
-  - Generar brackets
-  - Iniciar torneo
-  - Validar resultados de partidas
-  - Marcar partidas como "En Vivo"
-  - Editar resultados (si la fase no terminó)
-  - Banear participantes
-
-### Super Admin
-- Todo lo de Player +
-- Permisos globales sobre todos los torneos:
-  - Editar/eliminar cualquier torneo
-  - Validar resultados de cualquier partida
-  - Marcar cualquier partida como "En Vivo"
-  - Editar resultados de cualquier partida
-  - Banear participantes de cualquier torneo
-- Gestión de usuarios:
-  - Ver lista de usuarios
-  - Cambiar roles de usuarios
-  - Activar/suspender usuarios
-
-## 📦 Modelos de Base de Datos
-
-### User
+**Nota**: Requiere MongoDB corriendo localmente o conexión a MongoDB Atlas configurada en `.env`
 ```javascript
 {
   username: String (único),
