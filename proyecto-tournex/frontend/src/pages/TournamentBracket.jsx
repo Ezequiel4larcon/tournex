@@ -98,11 +98,13 @@ export default function TournamentBracket() {
     }
 
     try {
-      // Usar endpoint de edición o reporte según corresponda
-      if (isEditMode) {
+      // Si el match está in_progress o pending, usar report
+      // Si está completed, usar edit
+      if (selectedMatch.status === 'completed' && isEditMode) {
         await matchesAPI.edit(selectedMatch._id, reportData);
         alert('¡Resultado editado exitosamente!');
       } else {
+        // Para matches pending o in_progress, siempre usar report
         await matchesAPI.report(selectedMatch._id, reportData);
         alert('¡Resultado reportado exitosamente!');
       }
@@ -310,46 +312,59 @@ export default function TournamentBracket() {
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-2 border-t border-border">
-              <div className="text-xs text-muted-foreground">
-                {match.round && `Ronda ${match.round}`}
-                {match.matchNumber && ` - Match #${match.matchNumber}`}
-                {isByeMatch && <span className="ml-2 text-accent">(Pase automático)</span>}
-              </div>
-              <div className="flex items-center gap-2">
+            <div className="pt-3 border-t border-border space-y-2">
+              <div className="flex justify-between items-center">
+                <div className="text-xs text-muted-foreground">
+                  {match.round && `Ronda ${match.round}`}
+                  {match.matchNumber && ` - Match #${match.matchNumber}`}
+                  {isByeMatch && <span className="ml-2 text-accent">(Pase automático)</span>}
+                </div>
                 {getStatusBadge(match.status)}
-                {canManageTournament && match.status === 'pending' && match.participant1 && match.participant2 && !isByeMatch && (
-                  <>
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleSetMatchLive(match._id)}
-                      className="bg-destructive hover:bg-destructive/90"
-                    >
-                      <Flame className="w-3 h-3 mr-1" />
-                      Iniciar
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleOpenReportModal(match, false)}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <Edit className="w-3 h-3 mr-1" />
-                      Reportar
-                    </Button>
-                  </>
-                )}
-                {canManageTournament && (match.status === 'in_progress' || match.status === 'completed') && !isByeMatch && canEditMatch(match) && (
+              </div>
+              
+              {canManageTournament && match.status === 'pending' && match.participant1 && match.participant2 && !isByeMatch && (
+                <div className="flex gap-2">
                   <Button 
                     size="sm" 
-                    onClick={() => handleOpenReportModal(match, true)}
-                    variant="outline"
-                    className="border-accent text-accent hover:bg-accent/10"
+                    onClick={() => handleSetMatchLive(match._id)}
+                    className="flex-1 bg-destructive hover:bg-destructive/90"
+                  >
+                    <Flame className="w-3 h-3 mr-1" />
+                    Iniciar
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleOpenReportModal(match, false)}
+                    className="flex-1 bg-primary hover:bg-primary/90"
                   >
                     <Edit className="w-3 h-3 mr-1" />
-                    Editar
+                    Reportar
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
+              
+              {canManageTournament && match.status === 'in_progress' && !isByeMatch && (
+                <Button 
+                  size="sm" 
+                  onClick={() => handleOpenReportModal(match, false)}
+                  className="w-full bg-primary hover:bg-primary/90"
+                >
+                  <Edit className="w-3 h-3 mr-1" />
+                  Reportar Resultado
+                </Button>
+              )}
+              
+              {canManageTournament && match.status === 'completed' && !isByeMatch && canEditMatch(match) && (
+                <Button 
+                  size="sm" 
+                  onClick={() => handleOpenReportModal(match, true)}
+                  variant="outline"
+                  className="w-full border-accent text-accent hover:bg-accent/10"
+                >
+                  <Edit className="w-3 h-3 mr-1" />
+                  Editar
+                </Button>
+              )}
             </div>
           </div>
       </div>
