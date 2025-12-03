@@ -13,7 +13,7 @@ export const registerUser = async (userData) => {
   const existingUser = await User.findOne({ $or: [{ email }, { username }] });
   
   if (existingUser) {
-    throw new ApiError(400, 'User with this email or username already exists');
+    throw new ApiError(400, 'El usuario con este email o nombre de usuario ya existe');
   }
 
   // Hashear contraseña
@@ -55,18 +55,18 @@ export const loginUser = async (credentials) => {
   const user = await User.findOne({ email }).select('+password');
 
   if (!user) {
-    throw new ApiError(401, 'Invalid credentials');
+    throw new ApiError(401, 'Credenciales inválidas');
   }
 
   // Verificar contraseña
   const isPasswordValid = await comparePassword(password, user.password);
 
   if (!isPasswordValid) {
-    throw new ApiError(401, 'Invalid credentials');
+    throw new ApiError(401, 'Credenciales inválidas');
   }
 
   if (!user.isActive) {
-    throw new ApiError(401, 'Account is inactive');
+    throw new ApiError(401, 'La cuenta está inactiva');
   }
 
   // Actualizar último login
@@ -96,7 +96,7 @@ export const getUserProfile = async (userId) => {
   const user = await User.findById(userId);
 
   if (!user) {
-    throw new ApiError(404, 'User not found');
+    throw new ApiError(404, 'Usuario no encontrado');
   }
 
   return user;
@@ -119,7 +119,7 @@ export const updateUserProfile = async (userId, updateData) => {
     });
 
     if (existingUser) {
-      throw new ApiError(400, 'Email or username already in use');
+      throw new ApiError(400, 'Email o usuario ya se encuentra en uso');
     }
   }
 
@@ -130,7 +130,7 @@ export const updateUserProfile = async (userId, updateData) => {
   );
 
   if (!user) {
-    throw new ApiError(404, 'User not found');
+    throw new ApiError(404, 'Usuario no encontrado');
   }
 
   return user;
@@ -145,19 +145,19 @@ export const changePassword = async (userId, passwords) => {
   const user = await User.findById(userId).select('+password');
 
   if (!user) {
-    throw new ApiError(404, 'User not found');
+    throw new ApiError(404, 'Usuario no encontrado');
   }
 
   // Verificar contraseña actual
   const isPasswordValid = await comparePassword(currentPassword, user.password);
 
   if (!isPasswordValid) {
-    throw new ApiError(401, 'Current password is incorrect');
+    throw new ApiError(401, 'La contraseña actual es incorrecta');
   }
 
   // Hashear nueva contraseña
   user.password = await hashPassword(newPassword);
   await user.save();
 
-  return { message: 'Password updated successfully' };
+  return { message: 'Contraseña actualizada correctamente' };
 };

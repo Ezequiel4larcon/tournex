@@ -5,31 +5,8 @@ import TournamentParticipant from '../models/TournamentParticipant.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 
-/**
- * Obtener matches asignados a un árbitro
- */
-export const getAssignedMatches = async (refereeId) => {
-  const matches = await Match
-    .find({ assignedReferee: refereeId, status: { $in: ['pending', 'in_progress'] } })
-    .populate('tournament', 'name game')
-    .populate({
-      path: 'participant1',
-      populate: [
-        { path: 'player', select: 'username avatar' },
-        { path: 'team', select: 'name logo' }
-      ]
-    })
-    .populate({
-      path: 'participant2',
-      populate: [
-        { path: 'player', select: 'username avatar' },
-        { path: 'team', select: 'name logo' }
-      ]
-    })
-    .sort({ scheduledTime: 1, round: 1 });
-
-  return matches;
-};
+// FUNCIÓN NO IMPLEMENTADA - No hay sistema de árbitros en la implementación actual
+// El owner del torneo maneja todos los reportes directamente
 
 /**
  * Reportar resultado de un match (CRÍTICA - HU-008)
@@ -41,31 +18,32 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
     .populate('participant2');
 
   if (!match) {
-    throw { status: 404, message: 'Match not found' };
+    throw { status: 404, message: 'Match no encontrado' };
   }
 
-  // Verificar que sea el creador del torneo o el árbitro asignado
+  // Verificar que sea el creador del torneo o super admin
   const tournament = await Tournament.findById(match.tournament._id);
+  const user = await User.findById(userId);
   const isOwner = tournament.owner.toString() === userId.toString();
-  const isAssignedReferee = match.assignedReferee && match.assignedReferee.toString() === userId.toString();
+  const isSuperAdmin = user.role === 'super_admin';
   
-  if (!isOwner && !isAssignedReferee) {
-    throw { status: 403, message: 'You are not authorized to report this match' };
+  if (!isOwner && !isSuperAdmin) {
+    throw { status: 403, message: 'No está autorizado para reportar este match' };
   }
 
   if (match.status === 'completed') {
-    throw { status: 400, message: 'Match already completed' };
+    throw { status: 400, message: 'Match ya completado' };
   }
 
   if (!match.participant1 || !match.participant2) {
-    throw { status: 400, message: 'Match does not have both participants' };
+    throw { status: 400, message: 'El match no tiene ambos participantes' };
   }
 
   // Validar ganador y puntajes
   const { winnerId, score, notes } = reportData;
   
   if (winnerId !== match.participant1._id.toString() && winnerId !== match.participant2._id.toString()) {
-    throw { status: 400, message: 'Invalid winner' };
+    throw { status: 400, message: 'El ganador debe ser uno de los participantes del match' };
   }
 
   // Validar que el ganador tenga más puntos que el perdedor
@@ -96,7 +74,7 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
         participant2Score: score.participant2Score
       },
       notes,
-      validated: true, // Auto-validar si es el creador del torneo o árbitro asignado
+      validated: true, // Auto-validar si es el creador del torneo o super admin
       validatedBy: userId,
       validatedAt: new Date()
     });
@@ -159,8 +137,8 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
       await Notification.create({
         recipient: winnerParticipant.player,
         type: 'match_reported',
-        title: 'Match Result Reported',
-        message: `You won your match in ${match.tournament.name}!`,
+        title: 'Resultado de Match Reportado',
+        message: `Has ganado tu match en ${match.tournament.name}!`,
         relatedEntity: {
           entityType: 'Match',
           entityId: matchId
@@ -174,7 +152,7 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
         recipient: loserParticipant.player,
         type: 'match_reported',
         title: 'Match Result Reported',
-        message: `Your match in ${match.tournament.name} has been reported.`,
+        message: `Tu match en ${match.tournament.name} ha sido reportado.`,
         relatedEntity: {
           entityType: 'Match',
           entityId: matchId
@@ -187,65 +165,12 @@ export const reportMatchResult = async (matchId, reportData, userId) => {
       report
     };
   } catch (error) {
-    throw { status: 500, message: 'Error reporting match result', details: error.message };
+    throw { status: 500, message: 'Error reportando resultado del match', details: error.message };
   }
 };
 
-/**
- * Validar o editar un report (HU-009)
- */
-export const validateReport = async (matchId, validationData, userId) => {
-  const user = await User.findById(userId);
-  const match = await Match.findById(matchId).populate('assignedReferee');
-
-  if (!match) {
-    throw { status: 404, message: 'Match not found' };
-  }
-
-  // Solo admin o árbitro asignado pueden validar
-  const isAdmin = user.role === 'admin';
-  const isAssignedReferee = match.assignedReferee && match.assignedReferee._id.toString() === userId.toString();
-
-  if (!isAdmin && !isAssignedReferee) {
-    throw { status: 403, message: 'Not authorized to validate this report' };
-  }
-
-  const report = await MatchReport.findOne({ match: matchId }).sort({ createdAt: -1 });
-
-  if (!report) {
-    throw { status: 404, message: 'No report found for this match' };
-  }
-
-  // Actualizar report
-  if (validationData.validated !== undefined) {
-    report.validated = validationData.validated;
-    report.validatedBy = userId;
-    report.validatedAt = new Date();
-  }
-
-  if (validationData.disputed) {
-    report.disputed = true;
-    report.disputeReason = validationData.disputeReason;
-    match.status = 'disputed';
-    await match.save();
-  }
-
-  // Admin puede editar score/winner
-  if (isAdmin && validationData.score) {
-    report.score = validationData.score;
-    match.score = validationData.score;
-  }
-
-  if (isAdmin && validationData.winner) {
-    report.winner = validationData.winner;
-    match.winner = validationData.winner;
-    await match.save();
-  }
-
-  await report.save();
-
-  return report;
-};
+// FUNCIÓN NO IMPLEMENTADA - La validación de reportes no se usa en el sistema actual
+// Los resultados se reportan y validan automáticamente por el owner del torneo
 
 /**
  * Obtener match por ID con detalles completos
@@ -255,21 +180,16 @@ export const getMatchById = async (matchId) => {
     .populate('tournament', 'name game')
     .populate({
       path: 'participant1',
-      populate: [
-        { path: 'player', select: 'username avatar' }
-      ]
+      populate: { path: 'player', select: 'username avatar' }
     })
     .populate({
       path: 'participant2',
-      populate: [
-        { path: 'player', select: 'username avatar' }
-      ]
+      populate: { path: 'player', select: 'username avatar' }
     })
-    .populate('winner')
-    .populate('assignedReferee', 'username email avatar');
+    .populate('winner');
 
   if (!match) {
-    throw { status: 404, message: 'Match not found' };
+    throw { status: 404, message: 'Match no encontrado' };
   }
 
   // Obtener report si existe
@@ -297,11 +217,11 @@ export const setMatchLive = async (matchId, userId) => {
     .populate('participant2');
 
   if (!match) {
-    throw { status: 404, message: 'Match not found' };
+    throw { status: 404, message: 'Match no encontrado' };
   }
 
   if (!match.tournament) {
-    throw { status: 404, message: 'Tournament not found for this match' };
+    throw { status: 404, message: 'Torneo no encontrado para este match' };
   }
 
   // Solo owner del torneo o super_admin pueden cambiar estado
@@ -315,7 +235,7 @@ export const setMatchLive = async (matchId, userId) => {
   const isTournamentOwner = tournamentOwnerId === userId.toString();
 
   if (!isAdmin && !isTournamentOwner) {
-    throw { status: 403, message: 'Not authorized to modify this match' };
+    throw { status: 403, message: 'No está autorizado para modificar este match' };
   }
 
   // Cambiar estado a "en vivo"
@@ -339,11 +259,11 @@ export const editMatchResult = async (matchId, editData, userId) => {
     .populate('participant2');
 
   if (!match) {
-    throw { status: 404, message: 'Match not found' };
+    throw { status: 404, message: 'Match no encontrado' };
   }
 
   if (!match.tournament) {
-    throw { status: 404, message: 'Tournament not found for this match' };
+    throw { status: 404, message: 'Torneo no encontrado para este match' };
   }
 
   // No se puede editar si el torneo está completado
@@ -367,7 +287,7 @@ export const editMatchResult = async (matchId, editData, userId) => {
   const isTournamentOwner = tournamentOwnerId === userId.toString();
 
   if (!isAdmin && !isTournamentOwner) {
-    throw { status: 403, message: 'Not authorized to edit this match' };
+    throw { status: 403, message: 'No está autorizado para modificar este match' };
   }
 
   // Verificar que el match esté reportado
@@ -472,7 +392,7 @@ const generateNextRound = async (tournamentId, roundNumber, winners) => {
   const tournament = await Tournament.findById(tournamentId);
   
   if (!tournament) {
-    throw { status: 404, message: 'Tournament not found' };
+    throw { status: 404, message: 'Torneo no encontrado' };
   }
 
   const matches = [];

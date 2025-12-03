@@ -11,7 +11,7 @@ export const createTournament = async (tournamentData, createdBy) => {
   // Validar que maxParticipants sea uno de los valores permitidos
   const validParticipants = [2, 4, 8, 16, 32];
   if (!validParticipants.includes(tournamentData.maxParticipants)) {
-    throw { status: 400, message: 'Max participants must be 2, 4, 8, 16, or 32' };
+    throw { status: 400, message: 'El número máximo de participantes debe ser 2, 4, 8, 16 o 32' };
   }
 
   // Determinar el status inicial basado en las fechas de inscripción
@@ -104,7 +104,7 @@ export const getTournamentById = async (tournamentId) => {
     });
 
   if (!tournament) {
-    throw { status: 404, message: 'Tournament not found' };
+    throw { status: 404, message: 'Torneo no encontrado' };
   }
 
   // Obtener participantes (excluyendo baneados)
@@ -125,14 +125,14 @@ export const updateTournament = async (tournamentId, updateData, userId) => {
   const tournament = await Tournament.findById(tournamentId);
 
   if (!tournament) {
-    throw { status: 404, message: 'Tournament not found' };
+    throw { status: 404, message: 'Torneo no encontrado' };
   }
 
   // Solo el creador o admin pueden actualizar
   if (tournament.owner.toString() !== userId.toString()) {
     const user = await User.findById(userId);
     if (user.role !== 'super_admin') {
-      throw { status: 403, message: 'Not authorized to update this tournament' };
+      throw { status: 403, message: 'No estás autorizado para actualizar este torneo' };
     }
   }
 
@@ -193,7 +193,7 @@ export const deleteTournament = async (tournamentId, userId) => {
   const tournament = await Tournament.findById(tournamentId);
 
   if (!tournament) {
-    throw { status: 404, message: 'Tournament not found' };
+    throw { status: 404, message: 'Torneo no encontrado' };
   }
 
   // Verificar si es owner o super admin
@@ -202,19 +202,19 @@ export const deleteTournament = async (tournamentId, userId) => {
   const isSuperAdmin = user.role === 'super_admin';
 
   if (!isOwner && !isSuperAdmin) {
-    throw { status: 403, message: 'Not authorized to delete this tournament' };
+    throw { status: 403, message: 'No estás autorizado para eliminar este torneo' };
   }
 
   // Solo super admin puede eliminar torneos en progreso
   if (tournament.status === 'in_progress' && !isSuperAdmin) {
-    throw { status: 400, message: 'Cannot delete tournament in progress. Only super admin can do this.' };
+    throw { status: 400, message: 'No se puede eliminar un torneo en progreso. Solo super admin puede hacerlo.' };
   }
 
   await Tournament.findByIdAndDelete(tournamentId);
   await TournamentParticipant.deleteMany({ tournament: tournamentId });
   await Match.deleteMany({ tournament: tournamentId });
 
-  return { message: 'Tournament deleted successfully' };
+  return { message: 'Torneo eliminado exitosamente' };
 };
 
 /**
@@ -224,17 +224,17 @@ export const openRegistration = async (tournamentId, registrationData, userId) =
   const tournament = await Tournament.findById(tournamentId);
 
   if (!tournament) {
-    throw { status: 404, message: 'Tournament not found' };
+    throw { status: 404, message: 'Torneo no encontrado' };
   }
 
   // Solo el owner o super admin pueden abrir inscripciones
   const user = await User.findById(userId);
   if (tournament.owner.toString() !== userId.toString() && user.role !== 'super_admin') {
-    throw { status: 403, message: 'Not authorized to modify this tournament' };
+    throw { status: 403, message: 'No estás autorizado para modificar este torneo' };
   }
 
   if (!['pending', 'registration_closed'].includes(tournament.status)) {
-    throw { status: 400, message: 'Registration can only be opened for pending or closed tournaments' };
+    throw { status: 400, message: 'Solo se pueden abrir inscripciones para torneos pendientes o cerrados' };
   }
 
   // Actualizar fechas de inscripción si se proporcionan
@@ -265,20 +265,20 @@ export const registerParticipant = async (tournamentId, participantData) => {
   const tournament = await Tournament.findById(tournamentId);
 
   if (!tournament) {
-    throw { status: 404, message: 'Tournament not found' };
+    throw { status: 404, message: 'Torneo no encontrado' };
   }
 
   if (tournament.status !== 'registration_open') {
-    throw { status: 400, message: 'Tournament registration is not open' };
+    throw { status: 400, message: 'Las inscripciones del torneo no están abiertas' };
   }
 
   if (tournament.currentParticipants >= tournament.maxParticipants) {
-    throw { status: 400, message: 'Tournament is full' };
+    throw { status: 400, message: 'El torneo está lleno' };
   }
 
   // Verificar que el jugador no sea el owner del torneo
   if (tournament.owner.toString() === participantData.player.toString()) {
-    throw { status: 400, message: 'Tournament owner cannot register as participant' };
+    throw { status: 400, message: 'El creador del torneo no puede registrarse como participante' };
   }
 
   // Verificar si ya está registrado o fue baneado
@@ -289,9 +289,9 @@ export const registerParticipant = async (tournamentId, participantData) => {
 
   if (existingParticipant) {
     if (existingParticipant.status === 'banned') {
-      throw { status: 403, message: 'You have been banned from this tournament and cannot register again' };
+      throw { status: 403, message: 'Has sido baneado de este torneo y no puedes registrarte nuevamente' };
     }
-    throw { status: 400, message: 'Already registered in this tournament' };
+    throw { status: 400, message: 'Ya estás registrado en este torneo' };
   }
 
   const participant = await TournamentParticipant.create({
@@ -323,23 +323,23 @@ export const generateBracket = async (tournamentId, userId) => {
   const tournament = await Tournament.findById(tournamentId);
 
   if (!tournament) {
-    throw { status: 404, message: 'Tournament not found' };
+    throw { status: 404, message: 'Torneo no encontrado' };
   }
 
-  // Solo admin o creador pueden generar bracket
-  if (tournament.createdBy.toString() !== userId.toString()) {
+  // Solo owner o super admin pueden generar bracket
+  if (tournament.owner.toString() !== userId.toString()) {
     const user = await User.findById(userId);
-    if (user.role !== 'admin') {
-      throw { status: 403, message: 'Not authorized to generate bracket' };
+    if (user.role !== 'super_admin') {
+      throw { status: 403, message: 'No estás autorizado para generar el bracket' };
     }
   }
 
   if (tournament.bracketGenerated) {
-    throw { status: 400, message: 'Bracket already generated' };
+    throw { status: 400, message: 'El bracket ya fue generado' };
   }
 
   if (tournament.currentParticipants < 2) {
-    throw { status: 400, message: 'Need at least 2 participants to generate bracket' };
+    throw { status: 400, message: 'Se necesitan al menos 2 participantes para generar el bracket' };
   }
 
   // Obtener participantes registrados
@@ -386,9 +386,8 @@ export const generateBracket = async (tournamentId, userId) => {
   await tournament.save();
 
   return {
-    message: 'Bracket generated successfully',
-    matchesCreated: matches.length,
-    referee: 'Tournament owner assigned as referee'
+    message: 'Bracket generado exitosamente',
+    matchesCreated: matches.length
   };
 };
 
@@ -422,34 +421,38 @@ export const banParticipant = async (tournamentId, participantId, userId) => {
   // Verificar que el torneo existe
   const tournament = await Tournament.findById(tournamentId);
   if (!tournament) {
-    throw { status: 404, message: 'Tournament not found' };
+    throw { status: 404, message: 'Torneo no encontrado' };
   }
 
-  // Verificar que el usuario es el owner del torneo
-  if (tournament.owner.toString() !== userId.toString()) {
-    throw { status: 403, message: 'Only tournament owner can ban participants' };
+  // Verificar que el usuario es el owner del torneo o super admin
+  const user = await User.findById(userId);
+  const isOwner = tournament.owner.toString() === userId.toString();
+  const isSuperAdmin = user.role === 'super_admin';
+  
+  if (!isOwner && !isSuperAdmin) {
+    throw { status: 403, message: 'Solo el creador del torneo o super admin pueden banear participantes' };
   }
 
   // Solo se puede banear en estados específicos
   const allowedStatuses = ['registration_open', 'in_progress'];
   if (!allowedStatuses.includes(tournament.status)) {
-    throw { status: 400, message: 'Can only ban participants when tournament is in registration or in progress' };
+    throw { status: 400, message: 'Solo se pueden banear participantes cuando el torneo está en inscripción o en progreso' };
   }
 
   // Verificar que el participante existe
   const participant = await TournamentParticipant.findById(participantId).populate('player', 'username email');
   if (!participant) {
-    throw { status: 404, message: 'Participant not found' };
+    throw { status: 404, message: 'Participante no encontrado' };
   }
 
   // Verificar que el participante pertenece a este torneo
   if (participant.tournament.toString() !== tournamentId.toString()) {
-    throw { status: 400, message: 'Participant does not belong to this tournament' };
+    throw { status: 400, message: 'El participante no pertenece a este torneo' };
   }
 
   // No se puede banear si ya está baneado
   if (participant.status === 'banned') {
-    throw { status: 400, message: 'Participant is already banned' };
+    throw { status: 400, message: 'El participante ya está baneado' };
   }
 
   // Si el torneo está en progreso, verificar que el participante no esté en un match activo
@@ -464,7 +467,7 @@ export const banParticipant = async (tournamentId, participantId, userId) => {
     });
 
     if (activeMatch) {
-      throw { status: 400, message: 'Cannot ban participant with active or pending matches' };
+      throw { status: 400, message: 'No se puede banear a un participante con partidos activos o pendientes' };
     }
   }
 

@@ -66,11 +66,11 @@ export const markAsRead = async (notificationId, userId) => {
   const notification = await Notification.findById(notificationId);
 
   if (!notification) {
-    throw new ApiError(404, 'Notification not found');
+    throw new ApiError(404, 'Notificación no encontrada');
   }
 
   if (notification.recipient.toString() !== userId.toString()) {
-    throw new ApiError(403, 'Not authorized to update this notification');
+    throw new ApiError(403, 'No estás autorizado para actualizar esta notificación');
   }
 
   if (notification.isRead) {
@@ -108,16 +108,16 @@ export const deleteNotification = async (notificationId, userId) => {
   const notification = await Notification.findById(notificationId);
 
   if (!notification) {
-    throw new ApiError(404, 'Notification not found');
+    throw new ApiError(404, 'Notificación no encontrada');
   }
 
   if (notification.recipient.toString() !== userId.toString()) {
-    throw new ApiError(403, 'Not authorized to delete this notification');
+    throw new ApiError(403, 'No estás autorizado para eliminar esta notificación');
   }
 
   await notification.deleteOne();
 
-  return { message: 'Notification deleted successfully' };
+  return { message: 'Notificación eliminada exitosamente' };
 };
 
 /**
