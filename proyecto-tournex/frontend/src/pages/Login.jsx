@@ -142,17 +142,6 @@ const Login = () => {
                 {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
 
-              {/* Remember Me / Forgot Password */}
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
-                  <input type="checkbox" className="rounded border-border" />
-                  Recuérdame
-                </label>
-                <Link to="#" className="text-primary hover:underline">
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
-
               {/* Submit Button */}
               <Button 
                 type="submit" 
