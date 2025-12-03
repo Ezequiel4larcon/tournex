@@ -204,6 +204,11 @@ export default function TournamentBracket() {
       return false;
     }
 
+    // Si es un partido BYE (sin oponente), no se puede editar
+    if (match.isBye || !match.participant1 || !match.participant2) {
+      return false;
+    }
+
     // Si el match no está reportado, no hay nada que editar
     if (match.status !== 'in_progress' && match.status !== 'completed') {
       return false;
@@ -253,9 +258,10 @@ export default function TournamentBracket() {
 
   const MatchCard = ({ match }) => {
     const player1 = match.participant1?.player?.username || 'TBD';
-    const player2 = match.participant2?.player?.username || 'TBD';
+    const player2 = match.participant2?.player?.username || 'BYE';
     const score1 = match.score?.participant1Score || 0;
     const score2 = match.score?.participant2Score || 0;
+    const isByeMatch = match.isBye || !match.participant2;
 
     return (
       <div
@@ -298,10 +304,11 @@ export default function TournamentBracket() {
               <div className="text-xs text-muted-foreground">
                 {match.round && `Ronda ${match.round}`}
                 {match.matchNumber && ` - Match #${match.matchNumber}`}
+                {isByeMatch && <span className="ml-2 text-accent">(Pase automático)</span>}
               </div>
               <div className="flex items-center gap-2">
                 {getStatusBadge(match.status)}
-                {canManageTournament && match.status === 'pending' && match.participant1 && match.participant2 && (
+                {canManageTournament && match.status === 'pending' && match.participant1 && match.participant2 && !isByeMatch && (
                   <Button 
                     size="sm" 
                     onClick={() => handleOpenReportModal(match, false)}
@@ -311,7 +318,7 @@ export default function TournamentBracket() {
                     Reportar
                   </Button>
                 )}
-                {canManageTournament && (match.status === 'in_progress' || match.status === 'completed') && canEditMatch(match) && (
+                {canManageTournament && (match.status === 'in_progress' || match.status === 'completed') && !isByeMatch && canEditMatch(match) && (
                   <Button 
                     size="sm" 
                     onClick={() => handleOpenReportModal(match, true)}
