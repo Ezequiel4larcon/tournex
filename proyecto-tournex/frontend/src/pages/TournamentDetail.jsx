@@ -5,11 +5,16 @@ import { ArrowLeft, Users, Trophy, Calendar, Zap, CheckCircle2, Settings, Play, 
 import { tournamentsAPI } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
 import { getSocket, joinTournament } from '../utils/socket';
+import Spinner from '../components/ui/Spinner';
+import { formatDateTimeLocal, formatDateES } from '../utils/formatters';
+import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useToast } from '../context/ToastContext';
 
 export default function TournamentDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
   const [tournament, setTournament] = useState(null);
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +40,12 @@ export default function TournamentDetail() {
   const [showBanModal, setShowBanModal] = useState(false);
   const [participantToBan, setParticipantToBan] = useState(null);
   const [banning, setBanning] = useState(false);
+
+  // Cerrar modales con Escape
+  useEscapeKey(showRegistrationModal, () => setShowRegistrationModal(false));
+  useEscapeKey(showEditDatesModal, () => setShowEditDatesModal(false));
+  useEscapeKey(showEditRegistrationDatesModal, () => setShowEditRegistrationDatesModal(false));
+  useEscapeKey(showBanModal, () => { setShowBanModal(false); setParticipantToBan(null); });
 
   useEffect(() => {
     loadTournament();
@@ -82,10 +93,6 @@ export default function TournamentDetail() {
       const data = response.data.data || response.data;
       setTournament(data);
       
-      console.log('Tournament data:', data);
-      console.log('Winner:', data.winner);
-      console.log('Status:', data.status);
-      
       // Verificar si el usuario está inscrito (solo jugadores individuales ahora)
       const enrolled = data.participants?.some((p) => p.player?._id === user?._id);
       setIsEnrolled(enrolled);
@@ -110,16 +117,6 @@ export default function TournamentDetail() {
   };
 
   const handleOpenRegistrationModal = () => {
-    // Función helper para formatear fecha a datetime-local
-    const formatDateTimeLocal = (date) => {
-      if (!date) return '';
-      const d = new Date(date);
-      // Ajustar a zona horaria local
-      const offset = d.getTimezoneOffset() * 60000;
-      const localDate = new Date(d.getTime() - offset);
-      return localDate.toISOString().slice(0, 16);
-    };
-
     // Prellenar con las fechas actuales del torneo
     setRegistrationDates({
       registrationStartDate: formatDateTimeLocal(tournament.registrationStartDate) || new Date().toISOString().slice(0, 16),
@@ -131,25 +128,15 @@ export default function TournamentDetail() {
   const handleOpenRegistration = async () => {
     try {
       await tournamentsAPI.openRegistration(id, registrationDates);
-      alert('¡Inscripciones abiertas exitosamente!');
+      toast.success('¡Inscripciones abiertas exitosamente!');
       setShowRegistrationModal(false);
       loadTournament();
     } catch (err) {
-      alert(`Error al abrir inscripciones: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error al abrir inscripciones: ${err.response?.data?.message || err.message}`);
     }
   };
 
   const handleOpenEditDatesModal = () => {
-    // Función helper para formatear fecha a datetime-local
-    const formatDateTimeLocal = (date) => {
-      if (!date) return '';
-      const d = new Date(date);
-      // Ajustar a zona horaria local
-      const offset = d.getTimezoneOffset() * 60000;
-      const localDate = new Date(d.getTime() - offset);
-      return localDate.toISOString().slice(0, 16);
-    };
-
     setTournamentDates({
       startDate: formatDateTimeLocal(tournament.startDate) || new Date().toISOString().slice(0, 16),
       endDate: formatDateTimeLocal(tournament.endDate) || new Date().toISOString().slice(0, 16)
@@ -160,25 +147,15 @@ export default function TournamentDetail() {
   const handleUpdateDates = async () => {
     try {
       await tournamentsAPI.update(id, tournamentDates);
-      alert('¡Fechas actualizadas exitosamente!');
+      toast.success('¡Fechas actualizadas exitosamente!');
       setShowEditDatesModal(false);
       loadTournament();
     } catch (err) {
-      alert(`Error al actualizar fechas: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error al actualizar fechas: ${err.response?.data?.message || err.message}`);
     }
   };
 
   const handleOpenEditRegistrationDatesModal = () => {
-    // Función helper para formatear fecha a datetime-local
-    const formatDateTimeLocal = (date) => {
-      if (!date) return '';
-      const d = new Date(date);
-      // Ajustar a zona horaria local
-      const offset = d.getTimezoneOffset() * 60000;
-      const localDate = new Date(d.getTime() - offset);
-      return localDate.toISOString().slice(0, 16);
-    };
-
     setEditRegistrationDates({
       registrationStartDate: formatDateTimeLocal(tournament.registrationStartDate) || new Date().toISOString().slice(0, 16),
       registrationEndDate: formatDateTimeLocal(tournament.registrationEndDate) || new Date().toISOString().slice(0, 16)
@@ -189,11 +166,11 @@ export default function TournamentDetail() {
   const handleUpdateRegistrationDates = async () => {
     try {
       await tournamentsAPI.update(id, editRegistrationDates);
-      alert('¡Fechas de inscripciones actualizadas exitosamente!');
+      toast.success('¡Fechas de inscripciones actualizadas exitosamente!');
       setShowEditRegistrationDatesModal(false);
       loadTournament();
     } catch (err) {
-      alert(`Error al actualizar fechas de inscripciones: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error al actualizar fechas de inscripciones: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -201,10 +178,10 @@ export default function TournamentDetail() {
     try {
       setEnrolling(true);
       await tournamentsAPI.register(id, {});
-      alert('¡Te has inscrito exitosamente en el torneo!');
+      toast.success('¡Te has inscrito exitosamente en el torneo!');
       loadTournament();
     } catch (err) {
-      alert(`Error al inscribirse: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error al inscribirse: ${err.response?.data?.message || err.message}`);
     } finally {
       setEnrolling(false);
     }
@@ -216,10 +193,10 @@ export default function TournamentDetail() {
       await tournamentsAPI.generateBracket(id);
       // Luego iniciar el torneo
       await tournamentsAPI.start(id);
-      alert('¡Torneo iniciado exitosamente! Bracket generado y árbitros asignados');
+      toast.success('¡Torneo iniciado exitosamente! Bracket generado y árbitros asignados');
       loadTournament();
     } catch (err) {
-      alert(`Error al iniciar torneo: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error al iniciar torneo: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -234,12 +211,12 @@ export default function TournamentDetail() {
     try {
       setBanning(true);
       await tournamentsAPI.banParticipant(id, participantToBan._id);
-      alert(`${participantToBan.player?.username || participantToBan.user?.username || 'El participante'} ha sido baneado y removido del torneo`);
+      toast.success(`${participantToBan.player?.username || participantToBan.user?.username || 'El participante'} ha sido baneado y removido del torneo`);
       setShowBanModal(false);
       setParticipantToBan(null);
       loadTournament();
     } catch (err) {
-      alert(`Error al banear participante: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error al banear participante: ${err.response?.data?.message || err.message}`);
     } finally {
       setBanning(false);
     }
@@ -269,7 +246,7 @@ export default function TournamentDetail() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Cargando torneo...</p>
+        <Spinner text="Cargando torneo..." size="lg" />
       </div>
     );
   }
@@ -397,15 +374,7 @@ export default function TournamentDetail() {
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Inscripciones Cierran</p>
                       <p className="text-sm font-medium text-accent">
-                        {tournament.registrationEndDate 
-                          ? new Date(tournament.registrationEndDate).toLocaleString('es-ES', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })
-                          : 'No definido'}
+                        {formatDateES(tournament.registrationEndDate)}
                       </p>
                     </div>
                   ) : (
@@ -414,29 +383,13 @@ export default function TournamentDetail() {
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Inscripciones Abren</p>
                         <p className="text-sm font-medium text-foreground">
-                          {tournament.registrationStartDate 
-                            ? new Date(tournament.registrationStartDate).toLocaleString('es-ES', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })
-                            : 'No definido'}
+                          {formatDateES(tournament.registrationStartDate)}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Inscripciones Cierran</p>
                         <p className="text-sm font-medium text-foreground">
-                          {tournament.registrationEndDate 
-                            ? new Date(tournament.registrationEndDate).toLocaleString('es-ES', {
-                                day: '2-digit',
-                                month: '2-digit',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })
-                            : 'No definido'}
+                          {formatDateES(tournament.registrationEndDate)}
                         </p>
                       </div>
                     </>
@@ -446,29 +399,13 @@ export default function TournamentDetail() {
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Inicio del Torneo</p>
                 <p className="text-sm font-medium text-foreground">
-                  {tournament.startDate 
-                    ? new Date(tournament.startDate).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })
-                    : 'No definido'}
+                  {formatDateES(tournament.startDate)}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Fin del Torneo</p>
                 <p className="text-sm font-medium text-foreground">
-                  {tournament.endDate 
-                    ? new Date(tournament.endDate).toLocaleString('es-ES', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })
-                    : 'No definido'}
+                  {formatDateES(tournament.endDate)}
                 </p>
               </div>
             </div>

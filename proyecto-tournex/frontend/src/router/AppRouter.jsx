@@ -11,6 +11,7 @@ import CreateTournament from '../pages/CreateTournament';
 import TournamentDetail from '../pages/TournamentDetail';
 import TournamentBracket from '../pages/TournamentBracket';
 import AdminUsers from '../pages/AdminUsers';
+import NotFound from '../pages/NotFound';
 
 const AppRouter = () => {
   return (
@@ -45,22 +46,7 @@ const AppRouter = () => {
                 </ProtectedRoute>
               } 
             />
-              <Route 
-                path="/tournaments/:id" 
-                element={
-                  <ProtectedRoute>
-                    <TournamentDetail />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/tournaments/:id/bracket" 
-                element={
-                  <ProtectedRoute>
-                    <TournamentBracket />
-                  </ProtectedRoute>
-                } 
-              />
+            {/* Create debe ir ANTES de :id para evitar conflictos */}
             <Route
               path="/tournaments/create"
               element={
@@ -69,16 +55,35 @@ const AppRouter = () => {
                 </ProtectedRoute>
               }
             />
+            <Route 
+              path="/tournaments/:id" 
+              element={
+                <ProtectedRoute>
+                  <TournamentDetail />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/tournaments/:id/bracket" 
+              element={
+                <ProtectedRoute>
+                  <TournamentBracket />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Admin Routes - Solo super_admin */}
             <Route
               path="/admin/users"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute requireAdmin>
                   <AdminUsers />
                 </ProtectedRoute>
               }
             />
+
+            {/* 404 - Catch all */}
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </AuthProvider>

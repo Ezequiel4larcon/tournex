@@ -1,22 +1,28 @@
 /**
- * Categorías disponibles para los comentarios
- */
-export const CATEGORIES = [
-  { value: 'general', label: 'General' },
-  { value: 'technology', label: 'Tecnología' },
-  { value: 'sports', label: 'Deportes' },
-  { value: 'entertainment', label: 'Entretenimiento' },
-  { value: 'education', label: 'Educación' },
-  { value: 'other', label: 'Otro' }
-];
-
-/**
- * Roles de usuario
+ * Roles de usuario del sistema de torneos
  */
 export const USER_ROLES = {
-  USER: 'user',
-  MODERATOR: 'moderator',
-  ADMIN: 'admin'
+  PLAYER: 'player',
+  SUPER_ADMIN: 'super_admin',
+};
+
+/**
+ * Estados de torneo
+ */
+export const TOURNAMENT_STATUS = {
+  PENDING: 'pending',
+  REGISTRATION_OPEN: 'registration_open',
+  REGISTRATION_CLOSED: 'registration_closed',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+};
+
+/**
+ * Formatos de torneo
+ */
+export const TOURNAMENT_FORMATS = {
+  SINGLE_ELIMINATION: 'single_elimination',
 };
 
 /**

@@ -1,13 +1,14 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import Spinner from './ui/Spinner';
 
-const ProtectedRoute = ({ children, requireModerator = false, requireAdmin = false }) => {
+const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="text-xl">Cargando...</div>
+        <Spinner text="Verificando sesión..." />
       </div>
     );
   }
@@ -16,11 +17,7 @@ const ProtectedRoute = ({ children, requireModerator = false, requireAdmin = fal
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin && user?.role !== 'admin') {
-    return <Navigate to="/" replace />;
-  }
-
-  if (requireModerator && user?.role !== 'moderator' && user?.role !== 'admin') {
+  if (requireAdmin && user?.role !== 'super_admin') {
     return <Navigate to="/" replace />;
   }
 

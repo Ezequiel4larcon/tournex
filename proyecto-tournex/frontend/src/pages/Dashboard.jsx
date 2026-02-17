@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
-import { Gamepad2, Trophy, Users, Plus, LogOut, Settings, Shield, Grid3x3, Swords } from 'lucide-react';
+import { Gamepad2, Trophy, Users, Plus, Settings, Shield, Grid3x3, Swords } from 'lucide-react';
 import { tournamentsAPI, matchesAPI } from '../api/api';
+import Spinner from '../components/ui/Spinner';
+import { getStatusLabel, getStatusClass } from '../utils/formatters';
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [tournaments, setTournaments] = useState([]);
   const [myTournaments, setMyTournaments] = useState([]);
   const [moderatedTournaments, setModeratedTournaments] = useState([]);
   const [myMatches, setMyMatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeTab, setActiveTab] = useState('playing'); // 'playing' or 'moderating'
 
   useEffect(() => {
@@ -37,9 +37,6 @@ export default function Dashboard() {
       const data = response.data.data || response.data;
       const allTournaments = data.tournaments || data || [];
       
-      console.log('Usuario actual:', user);
-      console.log('Todos los torneos:', allTournaments);
-      
       setTournaments(allTournaments.slice(0, 3)); // Mostrar últimos 3 torneos
       
       const userId = user._id;
@@ -47,11 +44,8 @@ export default function Dashboard() {
       // Filtrar torneos donde el usuario es owner/moderador
       const moderated = allTournaments.filter(t => {
         const ownerId = t.owner?._id || t.owner;
-        const isOwner = ownerId && userId && ownerId === userId;
-        console.log(`Torneo ${t.name}: owner=${ownerId}, userId=${userId}, isOwner=${isOwner}`);
-        return isOwner;
+        return ownerId && userId && ownerId === userId;
       });
-      console.log('Torneos moderados:', moderated);
       setModeratedTournaments(moderated);
       
       // Filtrar torneos donde el usuario está inscrito como participante (no owner)
@@ -62,10 +56,8 @@ export default function Dashboard() {
           const playerId = p.player?._id || p.player;
           return playerId === userId;
         });
-        console.log(`Torneo ${t.name}: isParticipant=${isParticipant}, participants=`, t.participants);
         return isNotOwner && isParticipant;
       });
-      console.log('Torneos participando:', participating);
       setMyTournaments(participating);
 
       // Cargar partidos del usuario
@@ -117,35 +109,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const getStatusLabel = (status) => {
-    const statusMap = {
-      pending: 'Próximamente',
-      registration_open: 'Inscripciones Abiertas',
-      registration_closed: 'Inscripciones Cerradas',
-      in_progress: 'En Progreso',
-      completed: 'Finalizado',
-      cancelled: 'Cancelado'
-    };
-    return statusMap[status] || status;
-  };
-
-  const getStatusClass = (status) => {
-    const classMap = {
-      pending: 'bg-secondary/20 text-secondary',
-      registration_open: 'bg-accent/20 text-accent',
-      registration_closed: 'bg-yellow-500/20 text-yellow-500',
-      in_progress: 'bg-accent/20 text-accent',
-      completed: 'bg-muted text-muted-foreground',
-      cancelled: 'bg-destructive/20 text-destructive'
-    };
-    return classMap[status] || 'bg-muted text-muted-foreground';
-  };
-
   const activeTournaments = myTournaments.filter(t => 
     t.status === 'in_progress' || t.status === 'registration_open'
   );
@@ -157,7 +120,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Cargando dashboard...</p>
+        <Spinner text="Cargando dashboard..." size="lg" />
       </div>
     );
   }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -7,10 +7,13 @@ import { Input } from '../components/ui/Input';
 import { Plus, Search, Users, Trash2 } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
 import { getSocket } from '../utils/socket';
+import Spinner from '../components/ui/Spinner';
+import { getStatusLabel, getStatusClass } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 
 export default function Tournaments() {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,10 +66,10 @@ export default function Tournaments() {
     try {
       await tournamentsAPI.delete(tournamentId);
       setTournaments(prev => prev.filter(t => t._id !== tournamentId));
-      alert('Torneo eliminado exitosamente');
+      toast.success('Torneo eliminado exitosamente');
     } catch (err) {
       console.error('Error deleting tournament:', err);
-      alert(`Error al eliminar torneo: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error al eliminar torneo: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -76,39 +79,10 @@ export default function Tournaments() {
       t.game.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusLabel = (status) => {
-    const statusMap = {
-      pending: 'Próximamente',
-      registration_open: 'Inscripciones Abiertas',
-      registration_closed: 'Inscripciones Cerradas',
-      in_progress: 'En Progreso',
-      completed: 'Finalizado',
-      cancelled: 'Cancelado'
-    };
-    return statusMap[status] || status;
-  };
-
-  const getStatusClass = (status) => {
-    const classMap = {
-      pending: 'bg-secondary/20 text-secondary',
-      registration_open: 'bg-accent/20 text-accent',
-      registration_closed: 'bg-yellow-500/20 text-yellow-500',
-      in_progress: 'bg-accent/20 text-accent',
-      completed: 'bg-muted text-muted-foreground',
-      cancelled: 'bg-destructive/20 text-destructive'
-    };
-    return classMap[status] || 'bg-muted text-muted-foreground';
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Cargando torneos...</p>
+        <Spinner text="Cargando torneos..." size="lg" />
       </div>
     );
   }

@@ -4,11 +4,15 @@ import { Button } from './ui/Button';
 import { X, Bell, Trophy, Users, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
 import { notificationsAPI } from '../api/api';
 import { getSocket } from '../utils/socket';
+import { formatRelativeTime } from '../utils/formatters';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 export function NotificationsPanel({ isOpen, onClose, onCountChange }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  useEscapeKey(isOpen, onClose);
 
   useEffect(() => {
     if (isOpen) {
@@ -120,21 +124,6 @@ export function NotificationsPanel({ isOpen, onClose, onCountChange }) {
     }
   };
 
-  const formatTimestamp = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Ahora';
-    if (minutes < 60) return `Hace ${minutes}m`;
-    if (hours < 24) return `Hace ${hours}h`;
-    if (days < 7) return `Hace ${days}d`;
-    return date.toLocaleDateString('es-ES');
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -202,7 +191,7 @@ export function NotificationsPanel({ isOpen, onClose, onCountChange }) {
                         {notification.message}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                        {formatTimestamp(notification.createdAt)}
+                        {formatRelativeTime(notification.createdAt)}
                       </p>
                     </div>
                     <Button

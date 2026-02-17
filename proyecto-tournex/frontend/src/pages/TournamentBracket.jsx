@@ -5,11 +5,15 @@ import { Input } from '../components/ui/Input';
 import { ArrowLeft, Trophy, Flame, Clock, Edit } from 'lucide-react';
 import { tournamentsAPI, matchesAPI } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
+import Spinner from '../components/ui/Spinner';
+import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useToast } from '../context/ToastContext';
 
 export default function TournamentBracket() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const toast = useToast();
   const [tournament, setTournament] = useState(null);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +26,8 @@ export default function TournamentBracket() {
     score: { participant1Score: 0, participant2Score: 0 },
     notes: ''
   });
+
+  useEscapeKey(showReportModal, () => setShowReportModal(false));
 
   useEffect(() => {
     loadTournamentData();
@@ -75,7 +81,7 @@ export default function TournamentBracket() {
 
   const handleReportResult = async () => {
     if (!reportData.winnerId) {
-      alert('Selecciona un ganador');
+      toast.warning('Selecciona un ganador');
       return;
     }
 
@@ -84,7 +90,7 @@ export default function TournamentBracket() {
     const participant2Score = reportData.score.participant2Score || 0;
 
     if (participant1Score === participant2Score) {
-      alert('Los puntajes no pueden ser iguales. Debe haber un ganador.');
+      toast.warning('Los puntajes no pueden ser iguales. Debe haber un ganador.');
       return;
     }
 
@@ -93,7 +99,7 @@ export default function TournamentBracket() {
     const loserScore = isParticipant1Winner ? participant2Score : participant1Score;
 
     if (winnerScore <= loserScore) {
-      alert('El ganador debe tener más puntos que el perdedor');
+      toast.warning('El ganador debe tener más puntos que el perdedor');
       return;
     }
 
@@ -102,11 +108,11 @@ export default function TournamentBracket() {
       // Si está completed, usar edit
       if (selectedMatch.status === 'completed' && isEditMode) {
         await matchesAPI.edit(selectedMatch._id, reportData);
-        alert('¡Resultado editado exitosamente!');
+        toast.success('¡Resultado editado exitosamente!');
       } else {
         // Para matches pending o in_progress, siempre usar report
         await matchesAPI.report(selectedMatch._id, reportData);
-        alert('¡Resultado reportado exitosamente!');
+        toast.success('¡Resultado reportado exitosamente!');
       }
       
       setShowReportModal(false);
@@ -117,27 +123,27 @@ export default function TournamentBracket() {
       const tournamentData = updatedTournament.data.data || updatedTournament.data;
       
       if (tournamentData.status === 'completed') {
-        alert('¡Torneo finalizado! El campeón ha sido coronado.');
+        toast.success('¡Torneo finalizado! El campeón ha sido coronado. 🏆');
         navigate(`/tournaments/${id}`);
       }
     } catch (err) {
-      alert(`Error: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error: ${err.response?.data?.message || err.message}`);
     }
   };
 
   const handleEditResult = async () => {
     try {
       if (!reportData.winnerId) {
-        alert('Por favor selecciona un ganador');
+        toast.warning('Por favor selecciona un ganador');
         return;
       }
       
       await matchesAPI.edit(selectedMatch._id, reportData);
-      alert('Resultado editado exitosamente');
+      toast.success('Resultado editado exitosamente');
       setShowReportModal(false);
       loadTournamentData();
     } catch (err) {
-      alert(`Error: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -147,20 +153,20 @@ export default function TournamentBracket() {
       if (!confirmed) return;
 
       await tournamentsAPI.generateNextPhase(tournament._id, round);
-      alert('¡Siguiente fase generada exitosamente!');
+      toast.success('¡Siguiente fase generada exitosamente!');
       loadTournamentData();
     } catch (err) {
-      alert(`Error: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error: ${err.response?.data?.message || err.message}`);
     }
   };
 
   const handleSetMatchLive = async (matchId) => {
     try {
       await matchesAPI.setLive(matchId);
-      alert('¡Partido marcado como EN VIVO!');
+      toast.success('¡Partido marcado como EN VIVO!');
       loadTournamentData();
     } catch (err) {
-      alert(`Error: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -170,10 +176,10 @@ export default function TournamentBracket() {
       if (!confirmed) return;
 
       await tournamentsAPI.finalize(tournament._id, round);
-      alert('¡Torneo finalizado exitosamente! 🏆');
+      toast.success('¡Torneo finalizado exitosamente! 🏆');
       loadTournamentData();
     } catch (err) {
-      alert(`Error: ${err.response?.data?.message || err.message}`);
+      toast.error(`Error: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -404,7 +410,7 @@ export default function TournamentBracket() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Cargando bracket...</p>
+        <Spinner text="Cargando bracket..." size="lg" />
       </div>
     );
   }

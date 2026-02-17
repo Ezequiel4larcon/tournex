@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import { authAPI } from '../api/api';
-import { initSocket, disconnectSocket } from '../utils/socket';
+import { initSocket, disconnectSocket, getSocket } from '../utils/socket';
 
 export const AuthContext = createContext();
 
@@ -19,6 +19,11 @@ export const AuthProvider = ({ children }) => {
         try {
           const parsedUser = JSON.parse(savedUser);
           setUser(parsedUser);
+          
+          // Inicializar Socket.IO al recuperar sesión
+          if (!getSocket()) {
+            initSocket(token);
+          }
           
           // Opcionalmente, verificar el token con el backend
           try {
@@ -162,13 +167,8 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
     changePassword,
     isAuthenticated: !!user,
-    // Roles del sistema de foros (legacy)
-    isModerator: user?.role === 'moderator' || user?.role === 'admin',
-    isAdmin: user?.role === 'admin',
-    // Roles del sistema de torneos
     isPlayer: user?.role === 'player',
-    isReferee: user?.role === 'referee',
-    isTournamentAdmin: user?.role === 'admin',
+    isSuperAdmin: user?.role === 'super_admin',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

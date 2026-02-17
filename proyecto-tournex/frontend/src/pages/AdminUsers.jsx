@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Users, Shield, Search, UserX, UserCheck, Trash2 } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -118,7 +119,7 @@ export default function AdminUsers() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Cargando usuarios...</p>
+        <Spinner text="Cargando usuarios..." size="lg" />
       </div>
     );
   }

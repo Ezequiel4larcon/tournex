@@ -6,9 +6,11 @@ import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { ArrowLeft } from 'lucide-react';
 import { tournamentsAPI } from '../api/api';
+import { useToast } from '../context/ToastContext';
 
 export default function CreateTournament() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: '',
     game: '',
@@ -81,10 +83,10 @@ export default function CreateTournament() {
 
       const response = await tournamentsAPI.create(tournamentData);
       const newTournament = response.data.data;
-      alert('¡Torneo creado exitosamente!');
+      toast.success('¡Torneo creado exitosamente!');
       navigate(`/tournaments/${newTournament._id}`);
     } catch (err) {
-      alert(`Error al crear el torneo: ${err.message}`);
+      toast.error(`Error al crear el torneo: ${err.response?.data?.message || err.message}`);
     } finally {
       setIsLoading(false);
     }
