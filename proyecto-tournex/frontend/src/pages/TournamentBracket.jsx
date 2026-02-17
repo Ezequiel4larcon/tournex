@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { ArrowLeft, Trophy, Flame, Clock, Edit } from 'lucide-react';
+import { ArrowLeft, Trophy, Flame, Edit } from 'lucide-react';
 import { tournamentsAPI, matchesAPI } from '../api/api';
 import { useAuth } from '../hooks/useAuth';
 import Spinner from '../components/ui/Spinner';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { useToast } from '../context/ToastContext';
+import MatchCard from '../components/MatchCard';
+import MatchReportModal from '../components/MatchReportModal';
+import StatsCard from '../components/ui/StatsCard';
 
 export default function TournamentBracket() {
   const { id } = useParams();
@@ -21,13 +22,6 @@ export default function TournamentBracket() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [reportData, setReportData] = useState({
-    winnerId: '',
-    score: { participant1Score: 0, participant2Score: 0 },
-    notes: ''
-  });
-
-  useEscapeKey(showReportModal, () => setShowReportModal(false));
 
   useEffect(() => {
     loadTournamentData();
@@ -40,12 +34,8 @@ export default function TournamentBracket() {
         tournamentsAPI.getById(id),
         tournamentsAPI.getMatches(id)
       ]);
-
-      const tournamentData = tournamentRes.data.data || tournamentRes.data;
-      setTournament(tournamentData);
-
-      const matchesData = matchesRes.data.data || matchesRes.data;
-      setMatches(matchesData || []);
+      setTournament(tournamentRes.data.data || tournamentRes.data);
+      setMatches(matchesRes.data.data || matchesRes.data || []);
     } catch (err) {
       console.error('Error loading tournament data:', err);
       setError(err.response?.data?.message || err.message);
@@ -54,41 +44,20 @@ export default function TournamentBracket() {
     }
   };
 
+  // --- Handlers ---
   const handleOpenReportModal = (match, isEdit = false) => {
     setSelectedMatch(match);
     setIsEditMode(isEdit);
-    
-    // Si es edición, pre-cargar los datos existentes
-    if (isEdit && match.winner && match.score) {
-      setReportData({
-        winnerId: match.winner._id || match.winner,
-        score: {
-          participant1Score: match.score.participant1Score || 0,
-          participant2Score: match.score.participant2Score || 0
-        },
-        notes: match.notes || ''
-      });
-    } else {
-      setReportData({
-        winnerId: '',
-        score: { participant1Score: 0, participant2Score: 0 },
-        notes: ''
-      });
-    }
-    
     setShowReportModal(true);
   };
 
-  const handleReportResult = async () => {
+  const handleReportResult = async (reportData) => {
     if (!reportData.winnerId) {
       toast.warning('Selecciona un ganador');
       return;
     }
 
-    // Validar que el ganador tenga más puntos
-    const participant1Score = reportData.score.participant1Score || 0;
-    const participant2Score = reportData.score.participant2Score || 0;
-
+    const { participant1Score, participant2Score } = reportData.score;
     if (participant1Score === participant2Score) {
       toast.warning('Los puntajes no pueden ser iguales. Debe haber un ganador.');
       return;
@@ -104,57 +73,24 @@ export default function TournamentBracket() {
     }
 
     try {
-      // Si el match está in_progress o pending, usar report
-      // Si está completed, usar edit
       if (selectedMatch.status === 'completed' && isEditMode) {
         await matchesAPI.edit(selectedMatch._id, reportData);
         toast.success('¡Resultado editado exitosamente!');
       } else {
-        // Para matches pending o in_progress, siempre usar report
         await matchesAPI.report(selectedMatch._id, reportData);
         toast.success('¡Resultado reportado exitosamente!');
       }
-      
+
       setShowReportModal(false);
       await loadTournamentData();
-      
-      // Si el torneo se completó, mostrar mensaje especial y navegar a detalles
+
       const updatedTournament = await tournamentsAPI.getById(id);
       const tournamentData = updatedTournament.data.data || updatedTournament.data;
-      
+
       if (tournamentData.status === 'completed') {
         toast.success('¡Torneo finalizado! El campeón ha sido coronado. 🏆');
         navigate(`/tournaments/${id}`);
       }
-    } catch (err) {
-      toast.error(`Error: ${err.response?.data?.message || err.message}`);
-    }
-  };
-
-  const handleEditResult = async () => {
-    try {
-      if (!reportData.winnerId) {
-        toast.warning('Por favor selecciona un ganador');
-        return;
-      }
-      
-      await matchesAPI.edit(selectedMatch._id, reportData);
-      toast.success('Resultado editado exitosamente');
-      setShowReportModal(false);
-      loadTournamentData();
-    } catch (err) {
-      toast.error(`Error: ${err.response?.data?.message || err.message}`);
-    }
-  };
-
-  const handleGenerateNextPhase = async (round) => {
-    try {
-      const confirmed = confirm(`¿Estás seguro de que deseas generar la siguiente fase después de la ronda ${round}?`);
-      if (!confirmed) return;
-
-      await tournamentsAPI.generateNextPhase(tournament._id, round);
-      toast.success('¡Siguiente fase generada exitosamente!');
-      loadTournamentData();
     } catch (err) {
       toast.error(`Error: ${err.response?.data?.message || err.message}`);
     }
@@ -170,11 +106,22 @@ export default function TournamentBracket() {
     }
   };
 
+  const handleGenerateNextPhase = async (round) => {
+    try {
+      const confirmed = confirm(`¿Estás seguro de que deseas generar la siguiente fase después de la ronda ${round}?`);
+      if (!confirmed) return;
+      await tournamentsAPI.generateNextPhase(tournament._id, round);
+      toast.success('¡Siguiente fase generada exitosamente!');
+      loadTournamentData();
+    } catch (err) {
+      toast.error(`Error: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
   const handleFinalizeTournament = async (round) => {
     try {
       const confirmed = confirm('¿Estás seguro de que deseas finalizar el torneo? Esta acción no se puede deshacer.');
       if (!confirmed) return;
-
       await tournamentsAPI.finalize(tournament._id, round);
       toast.success('¡Torneo finalizado exitosamente! 🏆');
       loadTournamentData();
@@ -183,223 +130,44 @@ export default function TournamentBracket() {
     }
   };
 
-  // Verificar si una ronda está completada y si se puede generar la siguiente
-  const canGenerateNextPhase = (round) => {
-    if (!canManageTournament) return false;
-    if (tournament?.status === 'completed') return false;
-
-    const currentRoundMatches = matches.filter(m => m.round === round);
-    if (currentRoundMatches.length === 0) return false;
-
-    const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
-    const nextRoundExists = matches.some(m => m.round === round + 1);
-
-    return allCompleted && !nextRoundExists && currentRoundMatches.length > 1;
-  };
-
-  // Verificar si es la ronda final y se puede finalizar el torneo
-  const canFinalizeTournament = (round) => {
-    if (!canManageTournament) return false;
-    if (tournament?.status === 'completed') return false;
-
-    const currentRoundMatches = matches.filter(m => m.round === round);
-    if (currentRoundMatches.length !== 1) return false; // Debe ser solo 1 match (la final)
-
-    const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
-    const nextRoundExists = matches.some(m => m.round === round + 1);
-
-    return allCompleted && !nextRoundExists;
-  };
-
+  // --- Helpers ---
   const isOwner = tournament && user && tournament.owner?._id === user._id;
   const isSuperAdmin = user?.role === 'super_admin';
   const canManageTournament = isOwner || isSuperAdmin;
 
-  // Función para verificar si se puede editar un partido
+  const canGenerateNextPhase = (round) => {
+    if (!canManageTournament || tournament?.status === 'completed') return false;
+    const currentRoundMatches = matches.filter(m => m.round === round);
+    if (currentRoundMatches.length === 0) return false;
+    const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
+    const nextRoundExists = matches.some(m => m.round === round + 1);
+    return allCompleted && !nextRoundExists && currentRoundMatches.length > 1;
+  };
+
+  const canFinalizeTournament = (round) => {
+    if (!canManageTournament || tournament?.status === 'completed') return false;
+    const currentRoundMatches = matches.filter(m => m.round === round);
+    if (currentRoundMatches.length !== 1) return false;
+    const allCompleted = currentRoundMatches.every(m => m.status === 'completed');
+    const nextRoundExists = matches.some(m => m.round === round + 1);
+    return allCompleted && !nextRoundExists;
+  };
+
   const canEditMatch = (match) => {
-    // Si el torneo está completado, no se puede editar nada
-    if (tournament?.status === 'completed') {
-      return false;
-    }
-
-    // Si es un partido BYE (sin oponente), no se puede editar
-    if (match.isBye || !match.participant1 || !match.participant2) {
-      return false;
-    }
-
-    // Si el match no está reportado, no hay nada que editar
-    if (match.status !== 'in_progress' && match.status !== 'completed') {
-      return false;
-    }
-
-    // Verificar si todos los partidos de la ronda actual están completados
+    if (tournament?.status === 'completed') return false;
+    if (match.isBye || !match.participant1 || !match.participant2) return false;
+    if (match.status !== 'in_progress' && match.status !== 'completed') return false;
     const currentRoundMatches = matches.filter(m => m.round === match.round);
     const allCurrentRoundCompleted = currentRoundMatches.every(m => m.status === 'completed');
-
-    // Verificar si existe algún partido de la siguiente ronda
     const nextRoundMatches = matches.filter(m => m.round === match.round + 1);
-
-    // Si todos los partidos de esta ronda están completados Y existe la siguiente ronda, no se puede editar
-    if (allCurrentRoundCompleted && nextRoundMatches.length > 0) {
-      return false;
-    }
-
+    if (allCurrentRoundCompleted && nextRoundMatches.length > 0) return false;
     return true;
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'in_progress':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-destructive/20 text-destructive font-medium text-xs">
-            <Flame className="w-3 h-3" />
-            EN VIVO
-          </span>
-        );
-      case 'completed':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-accent/20 text-accent font-medium text-xs">
-            ✓ Completado
-          </span>
-        );
-      case 'pending':
-        return (
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-secondary/20 text-secondary font-medium text-xs">
-            <Clock className="w-3 h-3" />
-            Próximo
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const MatchCard = ({ match }) => {
-    const player1 = match.participant1?.player?.username || 'TBD';
-    const player2 = match.participant2?.player?.username || 'BYE';
-    const score1 = match.score?.participant1Score || 0;
-    const score2 = match.score?.participant2Score || 0;
-    const isByeMatch = match.isBye || !match.participant2;
-
-    return (
-      <div
-        className={`bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all duration-300 ${
-          match.status === 'in_progress' ? 'border-destructive/50 shadow-lg shadow-destructive/20' : ''
-        }`}
-      >
-          <div className="space-y-3">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="text-sm font-semibold text-foreground mb-2">{player1}</div>
-                <div className="text-sm font-semibold text-foreground text-right">{player2}</div>
-              </div>
-              <div className="ml-4 text-right">
-                {match.status === 'completed' ? (
-                  <div className="space-y-1">
-                    <div
-                      className={`text-lg font-bold ${match.winner?.toString() === match.participant1?._id?.toString() ? 'text-accent' : 'text-muted-foreground'}`}
-                    >
-                      {score1}
-                    </div>
-                    <div
-                      className={`text-lg font-bold ${match.winner?.toString() === match.participant2?._id?.toString() ? 'text-accent' : 'text-muted-foreground'}`}
-                    >
-                      {score2}
-                    </div>
-                  </div>
-                ) : match.status === 'in_progress' ? (
-                  <div className="space-y-1">
-                    <div className="text-lg font-bold text-destructive animate-pulse">{score1}</div>
-                    <div className="text-lg font-bold text-destructive animate-pulse">{score2}</div>
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground">-</div>
-                )}
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-border space-y-2">
-              <div className="flex justify-between items-center">
-                <div className="text-xs text-muted-foreground">
-                  {match.round && `Ronda ${match.round}`}
-                  {match.matchNumber && ` - Match #${match.matchNumber}`}
-                  {isByeMatch && <span className="ml-2 text-accent">(Pase automático)</span>}
-                </div>
-                {getStatusBadge(match.status)}
-              </div>
-              
-              {canManageTournament && match.status === 'pending' && match.participant1 && match.participant2 && !isByeMatch && (
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleSetMatchLive(match._id)}
-                    className="flex-1 bg-destructive hover:bg-destructive/90"
-                  >
-                    <Flame className="w-3 h-3 mr-1" />
-                    Iniciar
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleOpenReportModal(match, false)}
-                    className="flex-1 bg-primary hover:bg-primary/90"
-                  >
-                    <Edit className="w-3 h-3 mr-1" />
-                    Reportar
-                  </Button>
-                </div>
-              )}
-              
-              {canManageTournament && match.status === 'in_progress' && !isByeMatch && (
-                <Button 
-                  size="sm" 
-                  onClick={() => handleOpenReportModal(match, false)}
-                  className="w-full bg-primary hover:bg-primary/90"
-                >
-                  <Edit className="w-3 h-3 mr-1" />
-                  Reportar Resultado
-                </Button>
-              )}
-              
-              {canManageTournament && match.status === 'completed' && !isByeMatch && canEditMatch(match) && (
-                <Button 
-                  size="sm" 
-                  onClick={() => handleOpenReportModal(match, true)}
-                  variant="outline"
-                  className="w-full border-accent text-accent hover:bg-accent/10"
-                >
-                  <Edit className="w-3 h-3 mr-1" />
-                  Editar
-                </Button>
-              )}
-            </div>
-          </div>
-      </div>
-    );
-  };
-
-  // Agrupar matches por ronda
-  const groupMatchesByRound = () => {
-    const grouped = {};
-    matches.forEach((match) => {
-      const round = match.round || 1;
-      if (!grouped[round]) {
-        grouped[round] = [];
-      }
-      grouped[round].push(match);
-    });
-    return grouped;
-  };
-
-  const getRoundName = (round, totalRounds) => {
-    // Calcular el nombre basado en el número de matches en la primera ronda
-    // Esto determina cuántos participantes hay en el torneo
+  const getRoundName = (round) => {
     const firstRoundMatches = matches.filter(m => m.round === 1).length;
-    const totalParticipants = firstRoundMatches * 2; // Cada match tiene 2 participantes
-    
-    // Calcular el total de rondas esperadas según los participantes
+    const totalParticipants = firstRoundMatches * 2;
     const expectedRounds = Math.log2(totalParticipants);
-    
-    // Determinar el nombre de la ronda según la estructura del torneo
     if (round === expectedRounds) return 'Final';
     if (round === expectedRounds - 1) return 'Semifinales';
     if (round === expectedRounds - 2) return 'Cuartos de Final';
@@ -407,12 +175,18 @@ export default function TournamentBracket() {
     return `Ronda ${round}`;
   };
 
+  const groupMatchesByRound = () => {
+    const grouped = {};
+    matches.forEach((match) => {
+      const round = match.round || 1;
+      if (!grouped[round]) grouped[round] = [];
+      grouped[round].push(match);
+    });
+    return grouped;
+  };
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Spinner text="Cargando bracket..." size="lg" />
-      </div>
-    );
+    return <div className="min-h-screen bg-background flex items-center justify-center"><Spinner text="Cargando bracket..." size="lg" /></div>;
   }
 
   if (error || !tournament) {
@@ -433,12 +207,8 @@ export default function TournamentBracket() {
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Link
-          to={`/tournaments/${id}`}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8"
-        >
+        <Link to={`/tournaments/${id}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
           <ArrowLeft className="w-4 h-4" />
           Volver al torneo
         </Link>
@@ -452,9 +222,7 @@ export default function TournamentBracket() {
                   <div className="w-10 h-10 rounded-lg bg-destructive/20 flex items-center justify-center">
                     <Flame className="w-6 h-6 text-destructive" />
                   </div>
-                  <span className="px-4 py-2 rounded-full bg-destructive/20 text-destructive font-semibold">
-                    EN VIVO AHORA
-                  </span>
+                  <span className="px-4 py-2 rounded-full bg-destructive/20 text-destructive font-semibold">EN VIVO AHORA</span>
                 </div>
               )}
               <h1 className="text-4xl font-bold flex items-center gap-4 mb-3">
@@ -463,27 +231,16 @@ export default function TournamentBracket() {
                 </div>
                 {tournament.name}
               </h1>
-              <p className="text-lg text-muted-foreground">
-                {tournament.game} - Bracket del Torneo
-              </p>
+              <p className="text-lg text-muted-foreground">{tournament.game} - Bracket del Torneo</p>
             </div>
           </div>
         </div>
 
         {/* Tournament Stats */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all duration-300">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Total Matches</p>
-            <p className="text-4xl font-bold text-primary">{matches.length}</p>
-          </div>
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-destructive transition-all duration-300">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Matches en Vivo</p>
-            <p className="text-4xl font-bold text-destructive">{liveMatches.length}</p>
-          </div>
-          <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-accent transition-all duration-300">
-            <p className="text-sm font-medium text-muted-foreground mb-2">Matches Completados</p>
-            <p className="text-4xl font-bold text-accent">{completedMatches.length}</p>
-          </div>
+          <StatsCard label="Total Matches" value={matches.length} colorClass="text-primary" hoverBorderClass="hover:border-primary" />
+          <StatsCard label="Matches en Vivo" value={liveMatches.length} colorClass="text-destructive" hoverBorderClass="hover:border-destructive" />
+          <StatsCard label="Matches Completados" value={completedMatches.length} colorClass="text-accent" hoverBorderClass="hover:border-accent" />
         </div>
 
         {/* Live Matches Section */}
@@ -500,40 +257,24 @@ export default function TournamentBracket() {
                 {liveMatches.map((match) => (
                   <div key={match._id} className="bg-card/80 backdrop-blur-sm border border-destructive/50 rounded-xl p-6 shadow-lg shadow-destructive/20">
                     <div className="flex justify-between items-center mb-4">
-                      <span className="text-xs text-muted-foreground">
-                        Ronda {match.round} - Match #{match.matchNumber}
-                      </span>
+                      <span className="text-xs text-muted-foreground">Ronda {match.round} - Match #{match.matchNumber}</span>
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-destructive/20 text-destructive font-medium text-xs">
-                        <Flame className="w-3 h-3 animate-pulse" />
-                        EN VIVO
+                        <Flame className="w-3 h-3 animate-pulse" /> EN VIVO
                       </span>
                     </div>
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="font-semibold text-foreground">
-                          {match.participant1?.player?.username || 'TBD'}
-                        </span>
-                        <span className="text-2xl font-bold text-destructive animate-pulse">
-                          {match.score?.participant1Score || 0}
-                        </span>
+                        <span className="font-semibold text-foreground">{match.participant1?.player?.username || 'TBD'}</span>
+                        <span className="text-2xl font-bold text-destructive animate-pulse">{match.score?.participant1Score || 0}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="font-semibold text-foreground">
-                          {match.participant2?.player?.username || 'TBD'}
-                        </span>
-                        <span className="text-2xl font-bold text-destructive animate-pulse">
-                          {match.score?.participant2Score || 0}
-                        </span>
+                        <span className="font-semibold text-foreground">{match.participant2?.player?.username || 'TBD'}</span>
+                        <span className="text-2xl font-bold text-destructive animate-pulse">{match.score?.participant2Score || 0}</span>
                       </div>
                     </div>
                     {canManageTournament && (
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleOpenReportModal(match, false)}
-                        className="w-full mt-4 bg-primary hover:bg-primary/90"
-                      >
-                        <Edit className="w-3 h-3 mr-1" />
-                        Reportar Resultado
+                      <Button size="sm" onClick={() => handleOpenReportModal(match, false)} className="w-full mt-4 bg-primary hover:bg-primary/90">
+                        <Edit className="w-3 h-3 mr-1" /> Reportar Resultado
                       </Button>
                     )}
                   </div>
@@ -554,35 +295,32 @@ export default function TournamentBracket() {
               <div key={round} className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-8 hover:border-primary transition-all duration-300">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                    {getRoundName(roundNumber, rounds.length)} ({matchesByRound[round].length} matches)
+                    {getRoundName(roundNumber)} ({matchesByRound[round].length} matches)
                   </h2>
-                  
-                  {/* Botones para generar siguiente fase o finalizar */}
                   <div className="flex gap-3">
                     {showGenerateButton && (
-                      <Button
-                        onClick={() => handleGenerateNextPhase(roundNumber)}
-                        className="bg-accent hover:bg-accent/90"
-                      >
-                        <Trophy className="w-4 h-4 mr-2" />
-                        Generar Siguiente Fase
+                      <Button onClick={() => handleGenerateNextPhase(roundNumber)} className="bg-accent hover:bg-accent/90">
+                        <Trophy className="w-4 h-4 mr-2" /> Generar Siguiente Fase
                       </Button>
                     )}
                     {showFinalizeButton && (
-                      <Button
-                        onClick={() => handleFinalizeTournament(roundNumber)}
-                        className="bg-primary hover:bg-primary/90"
-                      >
-                        <Trophy className="w-4 h-4 mr-2" />
-                        Finalizar Torneo 🏆
+                      <Button onClick={() => handleFinalizeTournament(roundNumber)} className="bg-primary hover:bg-primary/90">
+                        <Trophy className="w-4 h-4 mr-2" /> Finalizar Torneo 🏆
                       </Button>
                     )}
                   </div>
                 </div>
-
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {matchesByRound[round].map((match) => (
-                    <MatchCard key={match._id} match={match} />
+                    <MatchCard
+                      key={match._id}
+                      match={match}
+                      canManage={canManageTournament}
+                      onSetLive={handleSetMatchLive}
+                      onReport={handleOpenReportModal}
+                      onEdit={(m) => handleOpenReportModal(m, true)}
+                      canEditMatch={canEditMatch}
+                    />
                   ))}
                 </div>
               </div>
@@ -592,9 +330,7 @@ export default function TournamentBracket() {
 
         {matches.length === 0 && (
           <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-8">
-            <p className="text-center text-muted-foreground py-8">
-              Aún no se han generado los matches del torneo
-            </p>
+            <p className="text-center text-muted-foreground py-8">Aún no se han generado los matches del torneo</p>
           </div>
         )}
 
@@ -608,141 +344,39 @@ export default function TournamentBracket() {
                 </div>
                 Match en Vivo Ahora
               </h2>
-                <div className="grid md:grid-cols-3 gap-8 items-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-primary/20 rounded-full flex items-center justify-center">
-                      <span className="text-2xl font-bold text-primary">
-                        {liveMatch.participant1?.player?.username?.charAt(0).toUpperCase() || 'P'}
-                      </span>
-                    </div>
-                    <p className="text-lg font-bold text-foreground">
-                      {liveMatch.participant1?.player?.username || 'TBD'}
-                    </p>
+              <div className="grid md:grid-cols-3 gap-8 items-center">
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-primary/20 rounded-full flex items-center justify-center">
+                    <span className="text-2xl font-bold text-primary">{liveMatch.participant1?.player?.username?.charAt(0).toUpperCase() || 'P'}</span>
                   </div>
-
-                  <div className="text-center">
-                    <div className="text-5xl font-bold text-destructive mb-4 animate-pulse">
-                      {liveMatch.score?.participant1Score || 0} - {liveMatch.score?.participant2Score || 0}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Ronda {liveMatch.round} en progreso
-                    </p>
-                  </div>
-
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-accent/20 rounded-full flex items-center justify-center">
-                      <span className="text-2xl font-bold text-accent">
-                        {liveMatch.participant2?.player?.username?.charAt(0).toUpperCase() || 'P'}
-                      </span>
-                    </div>
-                    <p className="text-lg font-bold text-foreground">
-                      {liveMatch.participant2?.player?.username || 'TBD'}
-                    </p>
-                  </div>
+                  <p className="text-lg font-bold text-foreground">{liveMatch.participant1?.player?.username || 'TBD'}</p>
                 </div>
+                <div className="text-center">
+                  <div className="text-5xl font-bold text-destructive mb-4 animate-pulse">
+                    {liveMatch.score?.participant1Score || 0} - {liveMatch.score?.participant2Score || 0}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Ronda {liveMatch.round} en progreso</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-accent/20 rounded-full flex items-center justify-center">
+                    <span className="text-2xl font-bold text-accent">{liveMatch.participant2?.player?.username?.charAt(0).toUpperCase() || 'P'}</span>
+                  </div>
+                  <p className="text-lg font-bold text-foreground">{liveMatch.participant2?.player?.username || 'TBD'}</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
       </div>
 
       {/* Modal para reportar resultado */}
-      {showReportModal && selectedMatch && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-            onClick={() => setShowReportModal(false)}
-          />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl max-w-md w-full p-6">
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-foreground mb-2">
-                  {isEditMode ? 'Editar Resultado del Match' : 'Reportar Resultado del Match'}
-                </h3>
-                <p className="text-muted-foreground">
-                  Ronda {selectedMatch.round} - Match #{selectedMatch.matchNumber}
-                </p>
-              </div>
-              <div className="space-y-4">
-                {/* Seleccionar ganador */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Ganador</label>
-                  <div className="space-y-2">
-                    <div 
-                      className={`p-3 border rounded-md cursor-pointer transition ${
-                        reportData.winnerId === selectedMatch.participant1._id 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                      onClick={() => setReportData({...reportData, winnerId: selectedMatch.participant1._id})}
-                    >
-                      <p className="font-medium">{selectedMatch.participant1.player?.username}</p>
-                    </div>
-                    <div 
-                      className={`p-3 border rounded-md cursor-pointer transition ${
-                        reportData.winnerId === selectedMatch.participant2._id 
-                          ? 'border-primary bg-primary/10' 
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                      onClick={() => setReportData({...reportData, winnerId: selectedMatch.participant2._id})}
-                    >
-                      <p className="font-medium">{selectedMatch.participant2.player?.username}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Scores */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Score {selectedMatch.participant1.player?.username}
-                    </label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={reportData.score.participant1Score}
-                      onChange={(e) => setReportData({
-                        ...reportData, 
-                        score: {...reportData.score, participant1Score: parseInt(e.target.value) || 0}
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">
-                      Score {selectedMatch.participant2.player?.username}
-                    </label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={reportData.score.participant2Score}
-                      onChange={(e) => setReportData({
-                        ...reportData, 
-                        score: {...reportData.score, participant2Score: parseInt(e.target.value) || 0}
-                      })}
-                    />
-                  </div>
-                </div>
-
-                {/* Botones */}
-                <div className="flex gap-3 pt-4">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowReportModal(false)}
-                    className="flex-1"
-                  >
-                    Cancelar
-                  </Button>
-                  <Button 
-                    onClick={handleReportResult}
-                    className="flex-1 bg-primary hover:bg-primary/90"
-                  >
-                    {isEditMode ? 'Guardar Cambios' : 'Reportar Resultado'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      <MatchReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        match={selectedMatch}
+        isEditMode={isEditMode}
+        onSubmit={handleReportResult}
+      />
     </main>
   );
 }

@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
 import { Users, Shield, Search, UserX, UserCheck, Trash2 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import StatsCard from '../components/ui/StatsCard';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
+import { useToast } from '../context/ToastContext';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -18,12 +20,17 @@ export default function AdminUsers() {
   const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
+
+  // Estado del diálogo de confirmación
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, variant: 'default' });
+
+  const openConfirm = (config) => setConfirmDialog({ isOpen: true, ...config });
+  const closeConfirm = () => setConfirmDialog(prev => ({ ...prev, isOpen: false }));
 
   // Verificar que sea super_admin
   useEffect(() => {
-    if (user && user.role !== 'super_admin') {
-      navigate('/dashboard');
-    }
+    if (user && user.role !== 'super_admin') navigate('/dashboard');
   }, [user, navigate]);
 
   // Cargar estadísticas
@@ -44,12 +51,7 @@ export default function AdminUsers() {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const params = {
-          page,
-          limit: 20,
-          ...(search && { search }),
-          ...(roleFilter && { role: roleFilter })
-        };
+        const params = { page, limit: 20, ...(search && { search }), ...(roleFilter && { role: roleFilter }) };
         const response = await api.get('/users', { params });
         setUsers(response.data.data);
         setTotalPages(response.data.totalPages);
@@ -63,65 +65,69 @@ export default function AdminUsers() {
   }, [page, search, roleFilter]);
 
   // Banear/Desbanear usuario
-  const handleToggleStatus = async (userId) => {
-    if (window.confirm('¿Estás seguro de cambiar el estado de este usuario?')) {
-      try {
-        await api.patch(`/users/${userId}/toggle-status`);
-        // Actualizar lista de usuarios
-        setUsers(prevUsers =>
-          prevUsers.map(u =>
-            u._id === userId ? { ...u, isActive: !u.isActive } : u
-          )
-        );
-      } catch (error) {
-        console.error('Error toggling user status:', error);
-        alert('Error al cambiar estado del usuario');
+  const handleToggleStatus = (userId) => {
+    openConfirm({
+      title: 'Cambiar estado de usuario',
+      message: '¿Estás seguro de cambiar el estado de este usuario?',
+      variant: 'default',
+      onConfirm: async () => {
+        try {
+          await api.patch(`/users/${userId}/toggle-status`);
+          setUsers(prev => prev.map(u => u._id === userId ? { ...u, isActive: !u.isActive } : u));
+          toast.success('Estado del usuario actualizado');
+          closeConfirm();
+        } catch (error) {
+          console.error('Error toggling user status:', error);
+          toast.error('Error al cambiar estado del usuario');
+        }
       }
-    }
+    });
   };
 
   // Cambiar rol de usuario
-  const handleChangeRole = async (userId, newRole) => {
-    if (window.confirm(`¿Cambiar rol a ${newRole}?`)) {
-      try {
-        await api.put(`/users/${userId}/role`, { role: newRole });
-        // Actualizar lista de usuarios
-        setUsers(prevUsers =>
-          prevUsers.map(u =>
-            u._id === userId ? { ...u, role: newRole } : u
-          )
-        );
-      } catch (error) {
-        console.error('Error changing role:', error);
-        alert('Error al cambiar rol del usuario');
+  const handleChangeRole = (userId, newRole) => {
+    openConfirm({
+      title: 'Cambiar rol',
+      message: `¿Cambiar rol a ${newRole}?`,
+      variant: 'default',
+      onConfirm: async () => {
+        try {
+          await api.put(`/users/${userId}/role`, { role: newRole });
+          setUsers(prev => prev.map(u => u._id === userId ? { ...u, role: newRole } : u));
+          toast.success('Rol actualizado exitosamente');
+          closeConfirm();
+        } catch (error) {
+          console.error('Error changing role:', error);
+          toast.error('Error al cambiar rol del usuario');
+        }
       }
-    }
+    });
   };
 
   // Eliminar usuario
-  const handleDeleteUser = async (userId) => {
-    if (window.confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')) {
-      try {
-        await api.delete(`/users/${userId}`);
-        // Remover de la lista
-        setUsers(prevUsers => prevUsers.filter(u => u._id !== userId));
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Error al eliminar usuario');
+  const handleDeleteUser = (userId) => {
+    openConfirm({
+      title: 'Eliminar usuario',
+      message: '¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.',
+      variant: 'destructive',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/users/${userId}`);
+          setUsers(prev => prev.filter(u => u._id !== userId));
+          toast.success('Usuario eliminado exitosamente');
+          closeConfirm();
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          toast.error('Error al eliminar usuario');
+        }
       }
-    }
+    });
   };
 
-  if (!user || user.role !== 'super_admin') {
-    return null;
-  }
+  if (!user || user.role !== 'super_admin') return null;
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Spinner text="Cargando usuarios..." size="lg" />
-      </div>
-    );
+    return <div className="min-h-screen bg-background flex items-center justify-center"><Spinner text="Cargando usuarios..." size="lg" /></div>;
   }
 
   return (
@@ -139,45 +145,10 @@ export default function AdminUsers() {
         {/* Estadísticas */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all duration-300">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-primary/20 rounded-lg">
-                  <Users className="w-5 h-5 text-primary" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">Total Usuarios</p>
-              </div>
-              <p className="text-3xl font-bold text-foreground">{stats.total}</p>
-            </div>
-            
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-accent transition-all duration-300">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-accent/20 rounded-lg">
-                  <UserCheck className="w-5 h-5 text-accent" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">Activos</p>
-              </div>
-              <p className="text-3xl font-bold text-foreground">{stats.byStatus.active}</p>
-            </div>
-            
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-destructive transition-all duration-300">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-destructive/20 rounded-lg">
-                  <UserX className="w-5 h-5 text-destructive" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">Suspendidos</p>
-              </div>
-              <p className="text-3xl font-bold text-foreground">{stats.byStatus.suspended}</p>
-            </div>
-            
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-secondary transition-all duration-300">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-secondary/20 rounded-lg">
-                  <Shield className="w-5 h-5 text-secondary" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground">Registros (30d)</p>
-              </div>
-              <p className="text-3xl font-bold text-foreground">{stats.recentRegistrations}</p>
-            </div>
+            <StatsCard icon={Users} label="Total Usuarios" value={stats.total} colorClass="text-primary" hoverBorderClass="hover:border-primary" />
+            <StatsCard icon={UserCheck} label="Activos" value={stats.byStatus.active} colorClass="text-accent" hoverBorderClass="hover:border-accent" />
+            <StatsCard icon={UserX} label="Suspendidos" value={stats.byStatus.suspended} colorClass="text-destructive" hoverBorderClass="hover:border-destructive" />
+            <StatsCard icon={Shield} label="Registros (30d)" value={stats.recentRegistrations} colorClass="text-secondary" hoverBorderClass="hover:border-secondary" />
           </div>
         )}
 
@@ -185,34 +156,23 @@ export default function AdminUsers() {
         <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 mb-6 hover:border-primary transition-all duration-300">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Buscar por username o email
-              </label>
+              <label className="block text-sm font-medium text-foreground mb-2">Buscar por username o email</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   type="text"
                   value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                   placeholder="Buscar usuarios..."
                   className="pl-12 h-12 bg-card/50 border-border rounded-xl hover:border-primary transition-colors"
                 />
               </div>
             </div>
-            
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Filtrar por rol
-              </label>
+              <label className="block text-sm font-medium text-foreground mb-2">Filtrar por rol</label>
               <select
                 value={roleFilter}
-                onChange={(e) => {
-                  setRoleFilter(e.target.value);
-                  setPage(1);
-                }}
+                onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
                 className="w-full h-12 px-4 bg-background border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary hover:border-primary transition-colors text-foreground"
               >
                 <option value="">Todos los roles</option>
@@ -229,41 +189,24 @@ export default function AdminUsers() {
             <table className="w-full">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Usuario
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Rol
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Último acceso
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    Acciones
-                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Usuario</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Rol</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Último acceso</th>
+                  <th className="px-6 py-4 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {users.map((u) => (
-                  <tr 
-                    key={u._id} 
-                    className={`hover:bg-muted/30 transition-all duration-200 ${!u.isActive ? 'opacity-60' : ''}`}
-                  >
+                  <tr key={u._id} className={`hover:bg-muted/30 transition-all duration-200 ${!u.isActive ? 'opacity-60' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0">
-                          <img
-                            className="h-10 w-10 rounded-full ring-2 ring-primary/20"
-                            src={u.avatar || `https://ui-avatars.com/api/?name=${u.username}&background=random`}
-                            alt={u.username}
-                          />
-                        </div>
+                        <img
+                          className="h-10 w-10 rounded-full ring-2 ring-primary/20"
+                          src={u.avatar || `https://ui-avatars.com/api/?name=${u.username}&background=random`}
+                          alt={u.username}
+                        />
                         <div className="ml-4">
                           <div className="text-sm font-medium text-foreground">{u.username}</div>
                         </div>
@@ -285,9 +228,7 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-3 py-1.5 inline-flex text-xs leading-5 font-semibold rounded-lg ${
-                        u.isActive 
-                          ? 'bg-green-500/20 text-green-500' 
-                          : 'bg-red-500/20 text-red-500'
+                        u.isActive ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
                       }`}>
                         {u.isActive ? 'Activo' : 'Suspendido'}
                       </span>
@@ -297,58 +238,56 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                          <Button
-                            onClick={() => handleToggleStatus(u._id)}
-                            disabled={u._id === user._id}
-                            size="sm"
-                            className={u.isActive 
-                              ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors' 
-                              : 'bg-green-500/20 text-green-500 border border-green-500/30 hover:bg-green-500/30 transition-colors'}
-                          >
-                            {u.isActive ? 'Suspender' : 'Activar'}
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteUser(u._id)}
-                            disabled={u._id === user._id}
-                            size="sm"
-                            className="bg-destructive hover:bg-destructive/90 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        <Button
+                          onClick={() => handleToggleStatus(u._id)}
+                          disabled={u._id === user._id}
+                          size="sm"
+                          className={u.isActive
+                            ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30 hover:bg-yellow-500/30 transition-colors'
+                            : 'bg-green-500/20 text-green-500 border border-green-500/30 hover:bg-green-500/30 transition-colors'}
+                        >
+                          {u.isActive ? 'Suspender' : 'Activar'}
+                        </Button>
+                        <Button
+                          onClick={() => handleDeleteUser(u._id)}
+                          disabled={u._id === user._id}
+                          size="sm"
+                          className="bg-destructive hover:bg-destructive/90 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        </div>
 
         {/* Paginación */}
         {totalPages > 1 && (
           <div className="mt-8 flex justify-center items-center gap-4">
-            <Button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              variant="outline"
-              className="hover:border-primary transition-colors"
-            >
+            <Button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} variant="outline" className="hover:border-primary transition-colors">
               Anterior
             </Button>
-            <span className="text-muted-foreground font-medium">
-              Página {page} de {totalPages}
-            </span>
-            <Button
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              variant="outline"
-              className="hover:border-primary transition-colors"
-            >
+            <span className="text-muted-foreground font-medium">Página {page} de {totalPages}</span>
+            <Button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} variant="outline" className="hover:border-primary transition-colors">
               Siguiente
             </Button>
           </div>
         )}
       </div>
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={closeConfirm}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        variant={confirmDialog.variant}
+      />
     </main>
   );
 }
