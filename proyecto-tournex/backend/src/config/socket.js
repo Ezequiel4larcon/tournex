@@ -8,9 +8,13 @@ let io = null;
  * Inicializar Socket.IO
  */
 export const initializeSocket = (server) => {
+  const corsOrigins = process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',')
+    : ['http://localhost:3000'];
+
   io = new Server(server, {
     cors: {
-      origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+      origin: corsOrigins,
       credentials: true
     }
   });
