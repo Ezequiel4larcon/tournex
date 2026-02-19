@@ -44,8 +44,4 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Índices para mejorar el rendimiento
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
-
 export default mongoose.model('User', userSchema);
